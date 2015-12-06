@@ -2,7 +2,6 @@ package maillist_test
 
 import (
 	"log"
-	"os"
 	"time"
 
 	"github.com/Attendly/maillist"
@@ -22,8 +21,7 @@ func Example() {
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
-		log.Printf("error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %v\n", err)
 	}
 
 	a := maillist.Account{
@@ -32,8 +30,7 @@ func Example() {
 		Email:     "sendgrid@eventarc.com",
 	}
 	if err := s.InsertAccount(&a); err != nil {
-		log.Printf("error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %v\n", err)
 	}
 
 	l := maillist.List{
@@ -42,8 +39,7 @@ func Example() {
 		EventID:   5,
 	}
 	if err = s.InsertList(&l); err != nil {
-		log.Printf("error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %v\n", err)
 	}
 
 	sub := maillist.Subscriber{
@@ -53,8 +49,7 @@ func Example() {
 		Email:     "tom@attendly.com",
 	}
 	if err = s.InsertSubscriber(&sub); err != nil {
-		log.Printf("error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %v\n", err)
 	}
 
 	c := maillist.Campaign{
@@ -63,8 +58,7 @@ func Example() {
 		Body:      "This is a test of attendly email list service",
 	}
 	if err = s.SendCampaign(&c, &l); err != nil {
-		log.Printf("error: %v\n", err)
-		os.Exit(1)
+		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(time.Second)
 	s.Close()
