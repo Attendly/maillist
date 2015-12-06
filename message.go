@@ -7,6 +7,8 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
+// A message is a single email. It keeps track of whether the message has been
+// sent or not.
 type Message struct {
 	ID           int64  `db:"id"`
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
@@ -14,10 +16,13 @@ type Message struct {
 	Status       string `db:"status" validate:"eq=pending|eq=sent"`
 }
 
+// InsertMessage inserts a message into the database. It's ID field will be
+// updated.
 func (s *Session) InsertMessage(m *Message) error {
 	return s.insert(m)
 }
 
+// pendingMessage retrieves a single message that is waiting to be sent
 func pendingMessage(s *Session) (*Message, error) {
 	var m Message
 	err := s.selectOne(&m, "status", "pending")
@@ -31,6 +36,7 @@ func pendingMessage(s *Session) (*Message, error) {
 	return nil, err
 }
 
+// sendMessage sends a single message to it's destination
 func (s *Session) sendMessage(m *Message) error {
 	email, err := buildEmail(s, m)
 	if err != nil {
@@ -53,6 +59,7 @@ func (s *Session) sendMessage(m *Message) error {
 	return nil
 }
 
+// buildEmail creates a new email in the format expected by sendgrid
 func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 	email := sendgrid.NewMail()
 
@@ -77,6 +84,8 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 	return email, nil
 }
 
+// printEmail just prints an email to stderr. It is useful for
+// debugging/logging
 func printEmail(m *sendgrid.SGMail) {
 	fmt.Println("Email to send")
 	fmt.Printf("To: %s (%s)\n", m.To[0], m.ToName[0])

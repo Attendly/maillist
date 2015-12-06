@@ -7,6 +7,8 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
+// Session is an opaque type holding database connections and other
+// implementation details
 type Session struct {
 	database
 	config    Config
@@ -15,12 +17,15 @@ type Session struct {
 	sgClient  *sendgrid.SGClient
 }
 
+// Config stores application defined options
 type Config struct {
 	DatabaseAddress string
 	SendGridAPIKey  string
 	JustPrint       bool
 }
 
+// OpenSession initialises a connection with the mailing list system. A call to
+// Session.Close() should follow to ensure a clean exit.
 func OpenSession(config *Config) (*Session, error) {
 	var s Session
 	var err error
@@ -50,11 +55,14 @@ func OpenSession(config *Config) (*Session, error) {
 	return &s, err
 }
 
+// Close closes the session. It blocks until the session is cleanly exited
 func (s *Session) Close() error {
 	s.messages <- "close"
 	return s.db.Close()
 }
 
+// listens for commands from the API. This is intended to be run asynchronously
+// and mainly exists to prevent the API from blocking.
 func service(s *Session) {
 next:
 	message := <-s.messages

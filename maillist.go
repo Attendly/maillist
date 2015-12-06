@@ -1,2 +1,2 @@
-// Package maillist does lots of stuff
+// Maillist sends bulk email to lists of addresses
 package maillist

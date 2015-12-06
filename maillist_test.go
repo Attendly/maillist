@@ -8,6 +8,9 @@ import (
 	"github.com/Attendly/maillist"
 )
 
+// Example session of sending a single test email. DatabaseAddress,
+// SendGridAPIKey would have to be set appropriately. JustPrint should be
+// false, and Subscriber.Email changed to send a real message.
 func Example() {
 	var err error
 	var s *maillist.Session
