@@ -1,4 +1,4 @@
-package main
+package maillist_test
 
 import (
 	"log"
@@ -8,46 +8,27 @@ import (
 	"github.com/Attendly/maillist"
 )
 
-func main() {
+func Example() {
 	var err error
-	// doSendGrid()
-	// db.Init()
-	// srv := api.InitAPI()
-
-	// err := http.ListenAndServe(":8080", srv)
-	// if err != nil {
-	// log.Printf("error: %v", err)
-	// }
+	var s *maillist.Session
 
 	config := maillist.Config{
-		DatabaseAddress: os.Args[1],
-		SendGridAPIKey:  os.Args[2],
+		DatabaseAddress: "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
+		SendGridAPIKey:  "",
+		JustPrint:       true,
 	}
 
-	s, err := maillist.OpenSession(&config)
-	if err != nil {
+	if s, err = maillist.OpenSession(&config); err != nil {
 		log.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
 
-	// m := maillist.Message{
-	// SubscriberID: 54,
-	// CampaignID:   10,
-	// Status:       "pending",
-	// }
-
-	// err = s.InsertMessage(&m)
-	// if err != nil {
-	// log.Printf("error: %v\n", err)
-	// }
-
-	// s.SendMessage(&m)
-
 	a := maillist.Account{
-		Email: "sendgrid@eventarc.com",
+		FirstName: "Joe",
+		LastName:  "Bloggs",
+		Email:     "sendgrid@eventarc.com",
 	}
-	err = s.InsertAccount(&a)
-	if err != nil {
+	if err := s.InsertAccount(&a); err != nil {
 		log.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
@@ -57,8 +38,7 @@ func main() {
 		Name:      "My Awesome Mailing List",
 		EventID:   5,
 	}
-	err = s.InsertList(&l)
-	if err != nil {
+	if err = s.InsertList(&l); err != nil {
 		log.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
@@ -69,8 +49,7 @@ func main() {
 		LastName:  "Barker",
 		Email:     "tom@attendly.com",
 	}
-	err = s.InsertSubscriber(&sub)
-	if err != nil {
+	if err = s.InsertSubscriber(&sub); err != nil {
 		log.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
@@ -80,11 +59,17 @@ func main() {
 		Subject:   "Awesome Event 2016",
 		Body:      "This is a test of attendly email list service",
 	}
-	err = s.SendCampaign(&c, &l)
-	if err != nil {
+	if err = s.SendCampaign(&c, &l); err != nil {
 		log.Printf("error: %v\n", err)
 		os.Exit(1)
 	}
 	time.Sleep(time.Second)
 	s.Close()
+
+	// Output:
+	// Email to send
+	// To: tom@attendly.com (Tommy Barker)
+	// From: sendgrid@eventarc.com ()
+	// Subject: Awesome Event 2016
+	// Body: This is a test of attendly email list service
 }

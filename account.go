@@ -1,12 +1,17 @@
 package maillist
 
 type Account struct {
-	ID     int64  `db:"id"`
-	Email  string `db:"email" validate:"required"`
-	Status string `db:"status" validate:"eq=active|eq=deleted"`
+	ID        int64  `db:"id"`
+	FirstName string `db:"first_name" validate:"required"`
+	LastName  string `db:"last_name" validate:"required"`
+	Email     string `db:"email" validate:"required"`
+	Status    string `db:"status" validate:"eq=active|eq=deleted"`
 }
 
 func (s *Session) InsertAccount(a *Account) error {
+	if a.Status == "" {
+		a.Status = "active"
+	}
 	return s.insert(a)
 }
 

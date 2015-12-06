@@ -18,6 +18,9 @@ func (s *Session) GetLists(accountID int64) ([]*List, error) {
 }
 
 func (s *Session) InsertList(l *List) error {
+	if l.Status == "" {
+		l.Status = "active"
+	}
 	return s.insert(l)
 }
 

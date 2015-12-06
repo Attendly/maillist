@@ -64,10 +64,8 @@ func (d *database) selectOne(i interface{}, key string, value interface{}) error
 		return fmt.Errorf("Type %s not registered in db", t)
 	}
 
-	sql := fmt.Sprintf("select %s from %s where %s=? and status='active'",
+	sql := fmt.Sprintf("select %s from %s where %s=? and status!='deleted' limit 1",
 		table.selectStr, table.name, key)
-
-	println(sql)
 
 	err := d.dbmap.SelectOne(i, sql, value)
 
@@ -81,7 +79,7 @@ func (d *database) selectMany(i interface{}, key string, value interface{}) erro
 		return fmt.Errorf("Type %s not registered in db", t)
 	}
 
-	sql := fmt.Sprintf("select %s from %s where %s=? and status='active'",
+	sql := fmt.Sprintf("select %s from %s where %s=? and status!='deleted'",
 		table.selectStr, table.name, key)
 
 	_, err := d.dbmap.Select(i, sql, value)

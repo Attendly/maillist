@@ -18,6 +18,9 @@ func (s *Session) GetSubscribers(listID int64) ([]*Subscriber, error) {
 }
 
 func (s *Session) InsertSubscriber(sub *Subscriber) error {
+	if sub.Status == "" {
+		sub.Status = "active"
+	}
 	return s.insert(sub)
 }
 
