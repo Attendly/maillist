@@ -13,7 +13,7 @@ type Session struct {
 	database
 	config    Config
 	messages  chan string
-	templates *template.Template
+	templates map[int64]*template.Template
 	sgClient  *sendgrid.SGClient
 }
 
@@ -46,6 +46,7 @@ func OpenSession(config *Config) (*Session, error) {
 
 	err = s.dbmap.CreateTablesIfNotExists()
 
+	s.templates = make(map[int64]*template.Template)
 	s.sgClient = sendgrid.NewSendGridClientWithApiKey(s.config.SendGridAPIKey)
 
 	s.messages = make(chan string)

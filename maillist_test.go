@@ -55,7 +55,7 @@ func Example() {
 	c := maillist.Campaign{
 		AccountID: a.ID,
 		Subject:   "Awesome Event 2016",
-		Body:      "This is a test of attendly email list service",
+		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
 	}
 	if err = s.SendCampaign(&c, &l); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -66,7 +66,8 @@ func Example() {
 	// Output:
 	// Email to send
 	// To: tom@attendly.com (Tommy Barker)
-	// From: sendgrid@eventarc.com ()
+	// From: sendgrid@eventarc.com (Joe Bloggs)
 	// Subject: Awesome Event 2016
-	// Body: This is a test of attendly email list service
+	// Body: Hi Tommy Barker,
+	// This is a test of attendly email list service
 }

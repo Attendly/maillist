@@ -1,8 +1,10 @@
 package maillist
 
 import (
+	"bytes"
 	"database/sql"
 	"fmt"
+	"html/template"
 
 	"github.com/sendgrid/sendgrid-go"
 )
@@ -50,7 +52,7 @@ func (s *Session) sendMessage(m *Message) error {
 	}
 
 	m.Status = "sent"
-	if err = s.update(&m); err != nil {
+	if err = s.update(m); err != nil {
 		return fmt.Errorf("couldn't update message status: %v\n", err)
 	}
 	if err = s.updateCampaignStatus(m.CampaignID); err != nil {
@@ -76,11 +78,23 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 		return nil, fmt.Errorf("Couldn't get account: %v", err)
 	}
 
-	email.AddTo(sub.Email)
-	email.AddToName(sub.FirstName + " " + sub.LastName)
-	email.SetSubject(campaign.Subject)
-	email.SetHTML(campaign.Body)
-	email.SetFrom(account.Email)
+	email.To = []string{sub.Email}
+	email.ToName = []string{sub.FirstName + " " + sub.LastName}
+	email.Subject = campaign.Subject
+	if s.templates[m.CampaignID] == nil {
+		t, err := template.New("").Parse(campaign.Body)
+		if err != nil {
+			return nil, err
+		}
+		s.templates[m.CampaignID] = t
+	}
+	var buf bytes.Buffer
+	if err := s.templates[m.CampaignID].Execute(&buf, sub); err != nil {
+		return nil, err
+	}
+	email.HTML = buf.String()
+	email.From = account.Email
+	email.FromName = account.FirstName + " " + account.LastName
 	return email, nil
 }
 
