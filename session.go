@@ -92,7 +92,7 @@ next:
 		}
 
 		if err = s.sendCampaign(c.ID); err != nil {
-			log.Printf("error: %v\n")
+			log.Printf("error: %v\n", err)
 			break
 		}
 	}

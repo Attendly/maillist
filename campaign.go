@@ -23,8 +23,8 @@ type Campaign struct {
 	EventIDs  string    `db:"event_ids" validate:"-"`
 }
 
-// SendCampaign sends an email to everyone in the provided lists. Duplicate
-// addresses are ignored
+// InsertCampaign adds the campaign to the scheduler to be sent to all its
+// subscribers
 func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64) error {
 	if c.ListIDs != "" || c.EventIDs != "" {
 		return errors.New("Events and Mailing-lists should be passed in InsertCampaign's parameters, not as part of the structure")

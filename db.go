@@ -10,8 +10,6 @@ import (
 	"gopkg.in/go-playground/validator.v8"
 
 	"github.com/go-gorp/gorp"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 type table struct {
@@ -24,6 +22,7 @@ type database struct {
 	tables map[reflect.Type]table
 }
 
+// ErrNotFound returned when an entity is not present in the database
 type ErrNotFound struct{}
 
 var validate *validator.Validate
@@ -38,7 +37,7 @@ func openDatabase(address string) (d database, err error) {
 		return
 	}
 
-	dialect := gorp.MySQLDialect{"InnoDB", "UTF8"}
+	dialect := gorp.MySQLDialect{Engine: "InnoDB", Encoding: "UTF8"}
 	d.dbmap = &gorp.DbMap{Db: d.db, Dialect: dialect}
 	d.tables = make(map[reflect.Type]table)
 

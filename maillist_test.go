@@ -79,7 +79,9 @@ func Example() {
 		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
-	s.Close()
+	if err := s.Close(); err != nil {
+		log.Fatalf("could not close session: %v", err)
+	}
 
 	// Output:
 	// Email to send
@@ -135,7 +137,9 @@ func TestMailListWithEvent(t *testing.T) {
 		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
-	s.Close()
+	if err := s.Close(); err != nil {
+		log.Fatalf("could not close session: %v", err)
+	}
 
 	// Output:
 	// Email to send

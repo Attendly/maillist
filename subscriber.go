@@ -5,7 +5,7 @@ import (
 	"fmt"
 )
 
-// A subscriber stores a single email address and some associated parameters.
+// Subscriber stores a single email address and some associated parameters.
 // Each subscriber must have an associated account, and a given email address
 // will have one subscriber for each account
 type Subscriber struct {
@@ -43,6 +43,9 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	return &sub, err
 }
 
+// GetOrInsertSubscriber retrieves a subscriber from the database if it cannot
+// be found. Otherwise adds a new entry. This is mostly used to prevent
+// duplicate subscribers.
 func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	if sub.ID != 0 {
 		return nil
@@ -56,6 +59,8 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	return err
 }
 
+// Unsubscribe marks a subscriber as not wanting to recieve any more marketting
+// emails
 func (s *Session) Unsubscribe(subID int64) error {
 	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", subID)
 	return err

@@ -1,5 +1,7 @@
 package maillist
 
+// List represents a user defined mailing list, these are seperate from
+// event-associated lists
 type List struct {
 	ID        int64  `db:"id"`
 	AccountID int64  `db:"account_id" validate:"required"`
@@ -52,6 +54,8 @@ func (s *Session) DeleteList(listID int64) error {
 	return s.delete(List{}, listID)
 }
 
+// AddSubscriberToList adds a subscriber to a mailing list. Internally it is
+// added to the list_subscriber joining table
 func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 	ls := ListSubscriber{
 		ListID:       listID,

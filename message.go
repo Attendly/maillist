@@ -9,7 +9,7 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
-// A message is a single email. It keeps track of whether the message has been
+// Message is a single email. It keeps track of whether the message has been
 // sent or not.
 type Message struct {
 	ID           int64  `db:"id"`

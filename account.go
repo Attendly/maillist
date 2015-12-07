@@ -1,6 +1,6 @@
 package maillist
 
-// An account is equivalent to a user. All lists, messages, and subscribers must
+// Account is equivalent to a user. All lists, messages, and subscribers must
 // have an associated account
 type Account struct {
 	ID        int64  `db:"id"`
