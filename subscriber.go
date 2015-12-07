@@ -55,3 +55,8 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	err = s.InsertSubscriber(sub)
 	return err
 }
+
+func (s *Session) Unsubscribe(subID int64) error {
+	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", subID)
+	return err
+}
