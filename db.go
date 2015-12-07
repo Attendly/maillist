@@ -3,6 +3,7 @@ package maillist
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 
@@ -32,7 +33,7 @@ func (err *ErrNotFound) Error() string {
 }
 
 func openDatabase(address string) (d database, err error) {
-	d.db, err = sql.Open("mysql", address)
+	d.db, err = sql.Open("mysql", address+"?charset=utf8&parseTime=True")
 	if err != nil {
 		return
 	}
@@ -121,4 +122,13 @@ func (d *database) addTable(i interface{}, tableName string) (selectStatement st
 	selectStatement = fmt.Sprintf("%s\n", strings.Join(columns, ","))
 	d.tables[reflect.TypeOf(i)] = table{tableName, selectStatement}
 	return selectStatement
+}
+
+func (d *database) selectString(i interface{}) string {
+	t := reflect.TypeOf(i).Elem()
+	table, ok := d.tables[t]
+	if !ok {
+		log.Fatalf("Type %s not registered in db", t)
+	}
+	return table.selectStr
 }

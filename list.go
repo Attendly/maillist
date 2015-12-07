@@ -8,6 +8,14 @@ type List struct {
 	Status    string `db:"status" validate:"eq=active|eq=deleted"`
 }
 
+// ListSubscriber represents a joining table for list and subscribers
+type ListSubscriber struct {
+	ID           int64  `db:"id"`
+	ListID       int64  `db:"list_id" validate:"required"`
+	SubscriberID int64  `db:"subscriber_id" validate:"required"`
+	Status       string `db:"status" validate:"eq=active|eq=deleted"`
+}
+
 // GetLists retrieves all the mailing lists associated with an account.
 func (s *Session) GetLists(accountID int64) ([]*List, error) {
 	var ls []*List
@@ -42,4 +50,13 @@ func (s *Session) UpdateList(l *List) error {
 // as `deleted` so we can a log of it)
 func (s *Session) DeleteList(listID int64) error {
 	return s.delete(List{}, listID)
+}
+
+func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
+	ls := ListSubscriber{
+		ListID:       listID,
+		SubscriberID: subscriberID,
+		Status:       "active",
+	}
+	return s.insert(&ls)
 }

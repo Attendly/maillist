@@ -13,6 +13,7 @@ import (
 func Example() {
 	var err error
 	var s *maillist.Session
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
 		DatabaseAddress: "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
@@ -43,7 +44,7 @@ func Example() {
 	}
 
 	sub := maillist.Subscriber{
-		ListID:    l.ID,
+		AccountID: a.ID,
 		FirstName: "Tommy",
 		LastName:  "Barker",
 		Email:     "tom@attendly.com",
@@ -52,15 +53,20 @@ func Example() {
 		log.Fatalf("error: %v\n", err)
 	}
 
+	if err = s.AddSubscriberToList(l.ID, sub.ID); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
 	c := maillist.Campaign{
 		AccountID: a.ID,
 		Subject:   "Awesome Event 2016",
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
+		Scheduled: time.Now(),
 	}
-	if err = s.SendCampaign(&c, &l); err != nil {
+	if err = s.InsertCampaign(&c, &l); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
-	time.Sleep(time.Second)
+	time.Sleep(5 * time.Second)
 	s.Close()
 
 	// Output:

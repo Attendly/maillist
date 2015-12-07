@@ -3,6 +3,7 @@ package maillist
 import (
 	"html/template"
 	"log"
+	"time"
 
 	"github.com/sendgrid/sendgrid-go"
 )
@@ -12,7 +13,7 @@ import (
 type Session struct {
 	database
 	config    Config
-	messages  chan string
+	wake      chan bool
 	templates map[int64]*template.Template
 	sgClient  *sendgrid.SGClient
 }
@@ -41,53 +42,72 @@ func OpenSession(config *Config) (*Session, error) {
 	s.addTable(List{}, "list")
 	s.addTable(Campaign{}, "campaign")
 	s.addTable(Subscriber{}, "subscriber")
-	s.addTable(Unsubscribe{}, "unsubscribe")
 	s.addTable(Message{}, "message")
+	s.addTable(ListSubscriber{}, "list_subscriber")
 
 	err = s.dbmap.CreateTablesIfNotExists()
 
 	s.templates = make(map[int64]*template.Template)
 	s.sgClient = sendgrid.NewSendGridClientWithApiKey(s.config.SendGridAPIKey)
 
-	s.messages = make(chan string)
+	s.wake = make(chan bool)
 	go service(&s)
-	s.messages <- "wake"
+	s.wake <- true
 
 	return &s, err
 }
 
 // Close closes the session. It blocks until the session is cleanly exited
 func (s *Session) Close() error {
-	s.messages <- "close"
+	close(s.wake)
 	return s.db.Close()
 }
 
 // listens for commands from the API. This is intended to be run asynchronously
 // and mainly exists to prevent the API from blocking.
 func service(s *Session) {
-next:
-	message := <-s.messages
-	switch message {
-	case "wake":
-		for {
-			m, err := pendingMessage(s)
-			if err != nil {
-				log.Printf("error: %v\n", err)
-				goto next
-			}
-			if m == nil {
-				goto next
-			}
+	ticker := time.NewTicker(time.Minute)
 
-			if err = s.sendMessage(m); err != nil {
-				log.Print(err)
-				goto next
-			}
+next:
+	select {
+	case _, ok := <-s.wake:
+		if !ok {
+			ticker.Stop()
+			return
 		}
-	case "close":
-		return
-	default:
-		log.Printf("Message not understood: %s", message)
-		goto next
+	case <-ticker.C:
 	}
+
+	for {
+		c, err := getDueCampaign(s)
+		if err != nil {
+			log.Printf("error: %v\n", err)
+			break
+		}
+		if c == nil {
+			break
+		}
+
+		if err = s.sendCampaign(c.ID); err != nil {
+			log.Printf("error: %v\n")
+			break
+		}
+	}
+
+	for {
+		m, err := pendingMessage(s)
+		if err != nil {
+			log.Printf("error: %v\n", err)
+			break
+		}
+		if m == nil {
+			break
+		}
+
+		if err = s.sendMessage(m); err != nil {
+			log.Print(err)
+			break
+		}
+	}
+	goto next
 }
