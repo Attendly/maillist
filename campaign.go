@@ -2,9 +2,11 @@ package maillist
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -17,25 +19,26 @@ type Campaign struct {
 	Body      string    `db:"body" validate:"required"`
 	Status    string    `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed"`
 	Scheduled time.Time `db:"scheduled" validate:"required"`
-	Lists     string    `db:"lists" validate:"-"`
+	ListIDs   string    `db:"list_ids" validate:"-"`
+	EventIDs  string    `db:"event_ids" validate:"-"`
 }
 
 // SendCampaign sends an email to everyone in the provided lists. Duplicate
 // addresses are ignored
-func (s *Session) InsertCampaign(campaign *Campaign, lists ...*List) error {
-	if len(lists) != 1 {
-		return fmt.Errorf("multiple lists not implemented")
+func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64) error {
+	if c.ListIDs != "" || c.EventIDs != "" {
+		return errors.New("Events and Mailing-lists should be passed in InsertCampaign's parameters, not as part of the structure")
 	}
 
-	l := lists[0]
+	c.ListIDs = intsToString(listIDs)
+	c.EventIDs = intsToString(eventIDs)
 
-	if l.AccountID != campaign.AccountID {
-		return fmt.Errorf("List account ID doesn't match accountID")
-	}
+	// if l.AccountID != c.AccountID {
+	// return fmt.Errorf("List account ID doesn't match accountID")
+	// }
 
-	campaign.Status = "scheduled"
-	campaign.Lists = strconv.FormatInt(l.ID, 10)
-	err := s.insert(campaign)
+	c.Status = "scheduled"
+	err := s.insert(c)
 	if err != nil {
 		return err
 	}
@@ -47,39 +50,60 @@ func (s *Session) InsertCampaign(campaign *Campaign, lists ...*List) error {
 // sendCampaign takes a scheduled campaign and adds it's messages to the queue
 // of pending messages
 func (s *Session) sendCampaign(campaignID int64) error {
+
+	if r, err := s.dbmap.Exec("update campaign set status='pending' where status='scheduled' and id=?",
+		campaignID); err != nil {
+		return err
+	} else if r2, err := r.RowsAffected(); r2 != 1 {
+		return err
+	}
+
 	var c Campaign
 	if err := s.selectOne(&c, "id", campaignID); err != nil {
 		log.Printf("%+v\n", err)
 		return err
 	}
-	if c.Status != "scheduled" {
-		return nil
+
+	listIDs := stringToInts(c.ListIDs)
+	eventIDs := stringToInts(c.EventIDs)
+
+	subs2 := make(map[string]*Subscriber)
+
+	for _, eventID := range eventIDs {
+		subs := s.config.GetAttendeesCallback(eventID)
+		for _, sub := range subs {
+			if subs2[sub.Email] == nil {
+				err := s.GetOrInsertSubscriber(sub)
+				if err != nil {
+					return err
+				}
+				subs2[sub.Email] = sub
+			}
+		}
 	}
 
-	c.Status = "pending"
-	err := s.update(&c)
-	if err != nil {
-		log.Printf("%+v\n", err)
-		return err
+	for _, listID := range listIDs {
+		subs, err := s.GetSubscribers(listID)
+		if err != nil {
+			log.Printf("%+v\n", err)
+			return err
+		}
+		for _, sub := range subs {
+			if subs2[sub.Email] == nil {
+				subs2[sub.Email] = sub
+			}
+		}
 	}
 
-	listID, _ := strconv.ParseInt(c.Lists, 10, 64)
-
-	subs, err := s.GetSubscribers(listID)
-	if err != nil {
-		log.Printf("%+v\n", err)
-		return err
-	}
-
-	for _, sub := range subs {
+	var err error
+	for _, sub := range subs2 {
 		m := Message{
 			SubscriberID: sub.ID,
 			CampaignID:   campaignID,
 			Status:       "pending",
 		}
 
-		err = s.InsertMessage(&m)
-		if err != nil {
+		if err = s.InsertMessage(&m); err != nil {
 			log.Printf("%+v\n", err)
 			break
 		}
@@ -129,4 +153,21 @@ func (s *Session) updateCampaignStatus(campaignID int64) error {
 	_, err = s.dbmap.Exec("update campaign set status='sent' where id=?",
 		campaignID)
 	return err
+}
+
+func intsToString(xs []int64) string {
+	ss := make([]string, len(xs))
+	for i := range xs {
+		ss[i] = strconv.FormatInt(xs[i], 10)
+	}
+	return strings.Join(ss, " ")
+}
+
+func stringToInts(s string) []int64 {
+	ss := strings.Fields(s)
+	xs := make([]int64, len(ss))
+	for i := range ss {
+		xs[i], _ = strconv.ParseInt(ss[i], 10, 64)
+	}
+	return xs
 }

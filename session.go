@@ -8,6 +8,8 @@ import (
 	"github.com/sendgrid/sendgrid-go"
 )
 
+type getAttendeeFunc func(eventID int64) []*Subscriber
+
 // Session is an opaque type holding database connections and other
 // implementation details
 type Session struct {
@@ -20,9 +22,10 @@ type Session struct {
 
 // Config stores application defined options
 type Config struct {
-	DatabaseAddress string
-	SendGridAPIKey  string
-	JustPrint       bool
+	DatabaseAddress      string
+	SendGridAPIKey       string
+	JustPrint            bool
+	GetAttendeesCallback getAttendeeFunc
 }
 
 // OpenSession initialises a connection with the mailing list system. A call to

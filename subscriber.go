@@ -1,6 +1,9 @@
 package maillist
 
-import "fmt"
+import (
+	"database/sql"
+	"fmt"
+)
 
 // A subscriber stores a single email address and some associated parameters.
 // Each subscriber must have an associated account, and a given email address
@@ -38,4 +41,17 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	var sub Subscriber
 	err := s.selectOne(&sub, "id", subscriberID)
 	return &sub, err
+}
+
+func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
+	if sub.ID != 0 {
+		return nil
+	}
+	query := fmt.Sprintf("select %s from subscriber where email=?", s.selectString(sub))
+	err := s.dbmap.SelectOne(&sub, query, sub.Email)
+	if err != sql.ErrNoRows {
+		return err
+	}
+	err = s.InsertSubscriber(sub)
+	return err
 }

@@ -2,10 +2,22 @@ package maillist_test
 
 import (
 	"log"
+	"testing"
 	"time"
 
 	"github.com/Attendly/maillist"
 )
+
+var accountID int64
+
+func getAttendees(eventID int64) []*maillist.Subscriber {
+	return []*maillist.Subscriber{{
+		AccountID: accountID,
+		FirstName: "Freddy",
+		LastName:  "Example",
+		Email:     "fred@example.com",
+	}}
+}
 
 // Example session of sending a single test email. DatabaseAddress,
 // SendGridAPIKey would have to be set appropriately. JustPrint should be
@@ -63,7 +75,7 @@ func Example() {
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
 		Scheduled: time.Now(),
 	}
-	if err = s.InsertCampaign(&c, &l); err != nil {
+	if err = s.InsertCampaign(&c, []int64{l.ID}, nil); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
@@ -75,5 +87,61 @@ func Example() {
 	// From: sendgrid@eventarc.com (Joe Bloggs)
 	// Subject: Awesome Event 2016
 	// Body: Hi Tommy Barker,
+	// This is a test of attendly email list service
+}
+
+func TestMailListWithEvent(t *testing.T) {
+	var err error
+	var s *maillist.Session
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	config := maillist.Config{
+		DatabaseAddress:      "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
+		SendGridAPIKey:       "",
+		JustPrint:            true,
+		GetAttendeesCallback: getAttendees,
+	}
+
+	if s, err = maillist.OpenSession(&config); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	a := maillist.Account{
+		FirstName: "Joe",
+		LastName:  "Bloggs",
+		Email:     "sendgrid@eventarc.com",
+	}
+	if err := s.InsertAccount(&a); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	accountID = a.ID
+
+	l := maillist.List{
+		AccountID: a.ID,
+		Name:      "My Awesome Mailing List",
+		EventID:   5,
+	}
+	if err = s.InsertList(&l); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	c := maillist.Campaign{
+		AccountID: a.ID,
+		Subject:   "Awesome Event 2016",
+		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
+		Scheduled: time.Now(),
+	}
+	if err = s.InsertCampaign(&c, nil, []int64{5}); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	time.Sleep(5 * time.Second)
+	s.Close()
+
+	// Output:
+	// Email to send
+	// To: fred@example.com (Freddy Example)
+	// From: sendgrid@eventarc.com (Joe Bloggs)
+	// Subject: Awesome Event 2016
+	// Body: Hi Freddy Example,
 	// This is a test of attendly email list service
 }
