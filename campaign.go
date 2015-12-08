@@ -96,6 +96,10 @@ func (s *Session) sendCampaign(campaignID int64) error {
 	}
 
 	for _, sub := range subs2 {
+		if sub.Status == "deleted" {
+			continue
+		}
+
 		m := Message{
 			SubscriberID: sub.ID,
 			CampaignID:   campaignID,

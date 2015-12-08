@@ -31,7 +31,7 @@ func (s *Session) GetSubscribers(listID int64) ([]*Subscriber, error) {
 // GetSubscriber retrieves a subscriber with a given ID
 func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	var sub Subscriber
-	sql := fmt.Sprintf("select %s from subscriber where status!='deleted' and id=?",
+	sql := fmt.Sprintf("select %s from subscriber where and id=?",
 		s.selectString(&sub))
 	err := s.dbmap.SelectOne(&sub, sql, subscriberID)
 	return &sub, err
