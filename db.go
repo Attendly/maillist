@@ -57,36 +57,6 @@ func (d *database) insert(i interface{}) error {
 	return err
 }
 
-func (d *database) selectOne(i interface{}, key string, value interface{}) error {
-	t := reflect.TypeOf(i).Elem()
-	table, ok := d.tables[t]
-	if !ok {
-		return fmt.Errorf("Type %s not registered in db", t)
-	}
-
-	sql := fmt.Sprintf("select %s from %s where %s=? and status!='deleted' limit 1",
-		table.selectStr, table.name, key)
-
-	err := d.dbmap.SelectOne(i, sql, value)
-
-	return err
-}
-
-func (d *database) selectMany(i interface{}, key string, value interface{}) error {
-	t := reflect.TypeOf(i).Elem().Elem().Elem()
-	table, ok := d.tables[t]
-	if !ok {
-		return fmt.Errorf("Type %s not registered in db", t)
-	}
-
-	sql := fmt.Sprintf("select %s from %s where %s=? and status!='deleted'",
-		table.selectStr, table.name, key)
-
-	_, err := d.dbmap.Select(i, sql, value)
-
-	return err
-}
-
 func (d *database) delete(i interface{}, id int64) error {
 	t := reflect.TypeOf(i)
 	table, ok := d.tables[t]
@@ -128,7 +98,10 @@ func (d *database) addTable(i interface{}, tableName string) (selectStatement st
 }
 
 func (d *database) selectString(i interface{}) string {
-	t := reflect.TypeOf(i).Elem()
+	t := reflect.TypeOf(i)
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
 	table, ok := d.tables[t]
 	if !ok {
 		log.Fatalf("Type %s not registered in db", t)

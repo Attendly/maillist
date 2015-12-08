@@ -1,5 +1,7 @@
 package maillist
 
+import "fmt"
+
 // List represents a user defined mailing list, these are seperate from
 // event-associated lists
 type List struct {
@@ -19,7 +21,11 @@ type ListSubscriber struct {
 // GetLists retrieves all the mailing lists associated with an account.
 func (s *Session) GetLists(accountID int64) ([]*List, error) {
 	var ls []*List
-	if err := s.selectMany(&ls, "account_id", accountID); err != nil {
+	sql := fmt.Sprintf("select %s from list where status!='deleted' and account_id=?",
+		s.selectString(&List{}))
+
+	_, err := s.dbmap.Select(&ls, sql, accountID)
+	if err != nil {
 		return nil, err
 	}
 
@@ -37,7 +43,8 @@ func (s *Session) InsertList(l *List) error {
 // GetList retrieves a mailing list with a given ID
 func (s *Session) GetList(listID int64) (*List, error) {
 	var l List
-	err := s.selectOne(&l, "id", listID)
+	sql := fmt.Sprintf("select %s from list where id=? and status!='deleted'", s.selectString(&l))
+	err := s.dbmap.SelectOne(&l, sql, listID)
 	return &l, err
 }
 

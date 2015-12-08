@@ -1,5 +1,7 @@
 package maillist
 
+import "fmt"
+
 // Account is equivalent to a user. All lists, messages, and subscribers must
 // have an associated account
 type Account struct {
@@ -32,9 +34,10 @@ func (s *Session) UpsertAccount(a *Account) error {
 }
 
 // GetAccount retrieves an account with a given ID
-func (s *Session) GetAccount(userID int64) (*Account, error) {
+func (s *Session) GetAccount(accountID int64) (*Account, error) {
 	var a Account
-	err := s.selectOne(&a, "id", userID)
+	sql := fmt.Sprintf("select %s from account where status!='deleted' and id=?", s.selectString(&a))
+	err := s.dbmap.SelectOne(&a, sql, accountID)
 	return &a, err
 }
 

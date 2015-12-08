@@ -58,8 +58,8 @@ func (s *Session) sendCampaign(campaignID int64) error {
 		return err
 	}
 
-	var c Campaign
-	if err := s.selectOne(&c, "id", campaignID); err != nil {
+	c, err := s.GetCampaign(campaignID)
+	if err != nil {
 		log.Printf("%+v\n", err)
 		return err
 	}
@@ -95,7 +95,6 @@ func (s *Session) sendCampaign(campaignID int64) error {
 		}
 	}
 
-	var err error
 	for _, sub := range subs2 {
 		m := Message{
 			SubscriberID: sub.ID,
@@ -135,7 +134,9 @@ func getDueCampaign(s *Session) (*Campaign, error) {
 // GetCampaign retrieves a campaign with a given ID
 func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
 	var c Campaign
-	err := s.selectOne(&c, "id", campaignID)
+	sql := fmt.Sprintf("select %s from campaign where id=? and status!='deleted'",
+		s.selectString(&c))
+	err := s.dbmap.SelectOne(&c, sql, campaignID)
 	return &c, err
 }
 
