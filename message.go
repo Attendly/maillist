@@ -26,7 +26,7 @@ func (s *Session) InsertMessage(m *Message) error {
 // pendingMessage retrieves a single message that is waiting to be sent
 func pendingMessage(s *Session) (*Message, error) {
 	var m Message
-	query := fmt.Sprintf("select %s from message where status='pending'",
+	query := fmt.Sprintf("select %s from message where status='pending' limit 1",
 		s.selectString(&m))
 	err := s.dbmap.SelectOne(&m, query)
 	if err == nil {

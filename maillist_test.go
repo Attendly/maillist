@@ -2,6 +2,7 @@ package maillist_test
 
 import (
 	"log"
+	"os"
 	"time"
 
 	"github.com/Attendly/maillist"
@@ -17,9 +18,12 @@ func Example() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
-		DatabaseAddress: "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
-		SendGridAPIKey:  "",
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		JustPrint:       true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -97,10 +101,13 @@ func ExampleWithEvent() {
 	}
 
 	config := maillist.Config{
-		DatabaseAddress:      "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
-		SendGridAPIKey:       "",
-		JustPrint:            true,
+		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		GetAttendeesCallback: getAttendees,
+		JustPrint:            true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -147,3 +154,24 @@ func ExampleWithEvent() {
 	// Body: Hi Freddy Example,
 	// This is a test of attendly email list service
 }
+
+// func TestGetSpamReports(t *testing.T) {
+
+// config := maillist.Config{
+// DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+// JustPrint:       true,
+
+// SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+// SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+// SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+// }
+
+// s, err := maillist.OpenSession(&config)
+// if err != nil {
+// t.Errorf("%v", err)
+// }
+
+// reports, err := s.GetSpamReports()
+
+// t.Errorf("%+v\n%+v\n\n", reports, err)
+// }

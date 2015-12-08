@@ -23,9 +23,12 @@ type Session struct {
 // Config stores application defined options
 type Config struct {
 	DatabaseAddress      string
-	SendGridAPIKey       string
 	JustPrint            bool
 	GetAttendeesCallback getAttendeeFunc
+
+	SendGridAPIKey   string
+	SendGridUsername string
+	SendGridPassword string
 }
 
 // OpenSession initialises a connection with the mailing list system. A call to
