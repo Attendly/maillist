@@ -12,7 +12,6 @@ import (
 // Message is a single email. It keeps track of whether the message has been
 // sent or not.
 type Message struct {
-	ID           int64  `db:"id"`
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	CampaignID   int64  `db:"campaign_id" validate:"required"`
 	Status       string `db:"status" validate:"eq=pending|eq=sent"`
@@ -51,8 +50,8 @@ func (s *Session) sendMessage(m *Message) error {
 		return err
 	}
 
-	m.Status = "sent"
-	if err = s.update(m); err != nil {
+	if _, err := s.dbmap.Exec("update message set status='sent' where subscriber_id=? and campaign_id=?",
+		m.SubscriberID, m.CampaignID); err != nil {
 		return fmt.Errorf("couldn't update message status: %v\n", err)
 	}
 	if err = s.updateCampaignStatus(m.CampaignID); err != nil {

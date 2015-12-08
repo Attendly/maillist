@@ -48,7 +48,7 @@ func OpenSession(config *Config) (*Session, error) {
 	s.addTable(Message{}, "message")
 	s.addTable(ListSubscriber{}, "list_subscriber")
 
-	err = s.dbmap.CreateTablesIfNotExists()
+	// err = s.dbmap.CreateTablesIfNotExists()
 
 	s.templates = make(map[int64]*template.Template)
 	s.sgClient = sendgrid.NewSendGridClientWithApiKey(s.config.SendGridAPIKey)

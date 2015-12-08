@@ -19,6 +19,18 @@ func (s *Session) InsertAccount(a *Account) error {
 	return s.insert(a)
 }
 
+func (s *Session) UpsertAccount(a *Account) error {
+	id, err := s.dbmap.SelectInt("select id from account where email=?", a.Email)
+	if err != nil {
+		return err
+	}
+	if id == 0 {
+		return s.InsertAccount(a)
+	}
+	a.ID = id
+	return s.UpdateAccount(a)
+}
+
 // GetAccount retrieves an account with a given ID
 func (s *Session) GetAccount(userID int64) (*Account, error) {
 	var a Account
@@ -28,6 +40,9 @@ func (s *Session) GetAccount(userID int64) (*Account, error) {
 
 // UpdateAccount updates an account (identified by it's ID)
 func (s *Session) UpdateAccount(a *Account) error {
+	if a.Status == "" {
+		a.Status = "active"
+	}
 	return s.update(a)
 }
 

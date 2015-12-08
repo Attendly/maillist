@@ -2,22 +2,11 @@ package maillist_test
 
 import (
 	"log"
-	"testing"
 	"time"
 
 	"github.com/Attendly/maillist"
+	_ "github.com/go-sql-driver/mysql"
 )
-
-var accountID int64
-
-func getAttendees(eventID int64) []*maillist.Subscriber {
-	return []*maillist.Subscriber{{
-		AccountID: accountID,
-		FirstName: "Freddy",
-		LastName:  "Example",
-		Email:     "fred@example.com",
-	}}
-}
 
 // Example session of sending a single test email. DatabaseAddress,
 // SendGridAPIKey would have to be set appropriately. JustPrint should be
@@ -42,14 +31,13 @@ func Example() {
 		LastName:  "Bloggs",
 		Email:     "sendgrid@eventarc.com",
 	}
-	if err := s.InsertAccount(&a); err != nil {
+	if err := s.UpsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 
 	l := maillist.List{
 		AccountID: a.ID,
 		Name:      "My Awesome Mailing List",
-		EventID:   5,
 	}
 	if err = s.InsertList(&l); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -61,7 +49,7 @@ func Example() {
 		LastName:  "Barker",
 		Email:     "tom@attendly.com",
 	}
-	if err = s.InsertSubscriber(&sub); err != nil {
+	if err = s.GetOrInsertSubscriber(&sub); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 
@@ -92,10 +80,21 @@ func Example() {
 	// This is a test of attendly email list service
 }
 
-func TestMailListWithEvent(t *testing.T) {
+func ExampleWithEvent() {
 	var err error
 	var s *maillist.Session
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	var accountID int64
+
+	getAttendees := func(eventID int64) []*maillist.Subscriber {
+		return []*maillist.Subscriber{{
+			AccountID: accountID,
+			FirstName: "Freddy",
+			LastName:  "Example",
+			Email:     "fred@example.com",
+		}}
+	}
 
 	config := maillist.Config{
 		DatabaseAddress:      "tt:tt@unix(/run/mysqld/mysqld.sock)/attendly_email_service",
@@ -113,7 +112,7 @@ func TestMailListWithEvent(t *testing.T) {
 		LastName:  "Bloggs",
 		Email:     "sendgrid@eventarc.com",
 	}
-	if err := s.InsertAccount(&a); err != nil {
+	if err := s.UpsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 	accountID = a.ID
@@ -121,7 +120,6 @@ func TestMailListWithEvent(t *testing.T) {
 	l := maillist.List{
 		AccountID: a.ID,
 		Name:      "My Awesome Mailing List",
-		EventID:   5,
 	}
 	if err = s.InsertList(&l); err != nil {
 		log.Fatalf("error: %v\n", err)

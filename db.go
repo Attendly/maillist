@@ -109,7 +109,11 @@ func (d *database) update(i interface{}) error {
 
 func (d *database) addTable(i interface{}, tableName string) (selectStatement string) {
 	tablemap := d.dbmap.AddTableWithName(i, tableName)
-	tablemap.SetKeys(true, "ID")
+	t := reflect.TypeOf(i)
+
+	if _, hasID := t.FieldByName("ID"); hasID {
+		tablemap.SetKeys(true, "ID")
+	}
 
 	var columns []string
 	for _, c := range tablemap.Columns {
@@ -119,7 +123,7 @@ func (d *database) addTable(i interface{}, tableName string) (selectStatement st
 	}
 
 	selectStatement = fmt.Sprintf("%s\n", strings.Join(columns, ","))
-	d.tables[reflect.TypeOf(i)] = table{tableName, selectStatement}
+	d.tables[t] = table{tableName, selectStatement}
 	return selectStatement
 }
 

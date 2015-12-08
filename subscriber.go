@@ -28,14 +28,6 @@ func (s *Session) GetSubscribers(listID int64) ([]*Subscriber, error) {
 	return subs, nil
 }
 
-// InsertSubscriber adds a subscriber to a mailing list
-func (s *Session) InsertSubscriber(sub *Subscriber) error {
-	if sub.Status == "" {
-		sub.Status = "active"
-	}
-	return s.insert(sub)
-}
-
 // GetSubscriber retrieves a subscriber with a given ID
 func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	var sub Subscriber
@@ -55,8 +47,10 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	if err != sql.ErrNoRows {
 		return err
 	}
-	err = s.InsertSubscriber(sub)
-	return err
+	if sub.Status == "" {
+		sub.Status = "active"
+	}
+	return s.insert(sub)
 }
 
 // Unsubscribe marks a subscriber as not wanting to recieve any more marketting

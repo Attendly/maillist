@@ -6,13 +6,11 @@ type List struct {
 	ID        int64  `db:"id"`
 	AccountID int64  `db:"account_id" validate:"required"`
 	Name      string `db:"name" validate:"required"`
-	EventID   int64  `db:"event_id" validate:"required"`
 	Status    string `db:"status" validate:"eq=active|eq=deleted"`
 }
 
 // ListSubscriber represents a joining table for list and subscribers
 type ListSubscriber struct {
-	ID           int64  `db:"id"`
 	ListID       int64  `db:"list_id" validate:"required"`
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	Status       string `db:"status" validate:"eq=active|eq=deleted"`
