@@ -1,6 +1,7 @@
 package maillist_test
 
 import (
+	"bytes"
 	"log"
 	"os"
 	"testing"
@@ -20,7 +21,7 @@ func Example() {
 
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-		JustPrint:       true,
+		JustPrint:       os.Stdout,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -102,10 +103,12 @@ func TestGetAttendeesCallback(t *testing.T) {
 		}}
 	}
 
+	var buf bytes.Buffer
+
 	config := maillist.Config{
 		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		GetAttendeesCallback: getAttendees,
-		JustPrint:            true,
+		JustPrint:            &buf,
 		UnsubscribeURL:       "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -149,19 +152,22 @@ func TestGetAttendeesCallback(t *testing.T) {
 		log.Fatalf("could not close session: %v", err)
 	}
 
-	// Output:
-	// Email to send
-	// To: fred@example.com (Freddy Example)
-	// From: example@example.com (Spamface The Bold)
-	// Subject: Awesome Event 2016
-	// Body: Hi Freddy Example,
-	// This is a test of attendly email list service
+	out := buf.String()
+	want := `Email to send
+To: fred@example.com (Freddy Example)
+From: example@example.com (Spamface The Bold)
+Subject: Awesome Event 2016
+Body: Hi Freddy Example,
+This is a test of attendly email list service
+`
+	if out != want {
+		log.Fatalf("got: '%s'\n\nwant: '%s'\n\n", out, want)
+	}
 }
 
 func TestGetSpamReports(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-		JustPrint:       true,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -191,7 +197,6 @@ func TestUnsubscribeToken(t *testing.T) {
 
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-		JustPrint:       true,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -222,7 +227,6 @@ func TestUnsubscribeToken(t *testing.T) {
 func TestGetLists(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-		JustPrint:       true,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -270,7 +274,15 @@ func TestGetLists(t *testing.T) {
 	}
 
 	if (lists[0].ID != l1.ID || lists[1].ID != l2.ID) &&
-		(lists[0] != l2.ID || lists[1].ID != l1.ID) {
+		(lists[0].ID != l2.ID || lists[1].ID != l1.ID) {
 		log.Fatalf("error in GetLists: didn't get list\n")
+	}
+
+	if err := s.DeleteList(l1.ID); err != nil {
+		log.Fatalf("Could not delete mailing lists: %v", err)
+	}
+
+	if err := s.DeleteList(l2.ID); err != nil {
+		log.Fatalf("Could not delete mailing lists: %v", err)
 	}
 }

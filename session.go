@@ -2,6 +2,7 @@ package maillist
 
 import (
 	"html/template"
+	"io"
 	"log"
 	"time"
 
@@ -23,7 +24,7 @@ type Session struct {
 // Config stores application defined options
 type Config struct {
 	DatabaseAddress      string
-	JustPrint            bool
+	JustPrint            io.Writer
 	GetAttendeesCallback getAttendeeFunc
 	UnsubscribeURL       string
 

@@ -54,8 +54,8 @@ func (s *Session) sendMessage(m *Message) error {
 		return nil
 	}
 
-	if s.config.JustPrint {
-		printEmail(email)
+	if s.config.JustPrint != nil {
+		s.config.JustPrint.Write(printEmail(email))
 	} else if err := s.sgClient.Send(email); err != nil {
 		return err
 	}
@@ -117,9 +117,10 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 
 // printEmail just prints an email to stderr. It is useful for
 // debugging/logging
-func printEmail(m *sendgrid.SGMail) {
-	fmt.Println("Email to send")
-	fmt.Printf("To: %s (%s)\n", m.To[0], m.ToName[0])
-	fmt.Printf("From: %s (%s)\n", m.From, m.FromName)
-	fmt.Printf("Subject: %s\nBody: %s\n", m.Subject, m.HTML)
+func printEmail(m *sendgrid.SGMail) []byte {
+	s := fmt.Sprintln("Email to send")
+	s += fmt.Sprintf("To: %s (%s)\n", m.To[0], m.ToName[0])
+	s += fmt.Sprintf("From: %s (%s)\n", m.From, m.FromName)
+	s += fmt.Sprintf("Subject: %s\nBody: %s\n", m.Subject, m.HTML)
+	return []byte(s)
 }
