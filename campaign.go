@@ -161,6 +161,7 @@ func (s *Session) updateCampaignStatus(campaignID int64) error {
 	return err
 }
 
+// intsToString creates a space delimitted string of integers of a list
 func intsToString(xs []int64) string {
 	ss := make([]string, len(xs))
 	for i := range xs {
@@ -169,6 +170,7 @@ func intsToString(xs []int64) string {
 	return strings.Join(ss, " ")
 }
 
+// stringToInts creates a list of integers from a space-delimitted string
 func stringToInts(s string) []int64 {
 	ss := strings.Fields(s)
 	xs := make([]int64, len(ss))

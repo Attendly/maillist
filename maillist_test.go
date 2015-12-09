@@ -86,7 +86,7 @@ func Example() {
 	// This is a test of attendly email list service
 }
 
-func ExampleWithEvent() {
+func TestGetAttendeesCallback(t *testing.T) {
 	var err error
 	var s *maillist.Session
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -118,9 +118,9 @@ func ExampleWithEvent() {
 	}
 
 	a := maillist.Account{
-		FirstName: "Joe",
-		LastName:  "Bloggs",
-		Email:     "sendgrid@eventarc.com",
+		FirstName: "Spamface",
+		LastName:  "The Bold",
+		Email:     "example@example.com",
 	}
 	if err := s.UpsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -152,7 +152,7 @@ func ExampleWithEvent() {
 	// Output:
 	// Email to send
 	// To: fred@example.com (Freddy Example)
-	// From: sendgrid@eventarc.com (Joe Bloggs)
+	// From: example@example.com (Spamface The Bold)
 	// Subject: Awesome Event 2016
 	// Body: Hi Freddy Example,
 	// This is a test of attendly email list service
@@ -217,11 +217,60 @@ func TestUnsubscribeToken(t *testing.T) {
 	if sub.ID != sub2.ID {
 		t.Fatalf("GetSubscriberByToken result incorrect\n")
 	}
-	// if err := s.Unsubscribe(sub2.ID); err != nil {
-	// t.Fatalf("error: %v", err)
-	// }
+}
 
-	// reports, err := s.GetSpamReports()
+func TestGetLists(t *testing.T) {
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		JustPrint:       true,
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
-	// t.Errorf("%+v\n%+v\n\n", reports, err)
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
+
+	s, err := maillist.OpenSession(&config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	a := maillist.Account{
+		FirstName: "Brian",
+		LastName:  "Cohen",
+		Email:     "briancohen@example.com",
+	}
+	if err := s.UpsertAccount(&a); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	l1 := maillist.List{
+		AccountID: a.ID,
+		Name:      "TestGetLists 1",
+	}
+	if err = s.InsertList(&l1); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	l2 := maillist.List{
+		AccountID: a.ID,
+		Name:      "TestGetLists 2",
+	}
+	if err = s.InsertList(&l2); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+
+	lists, err := s.GetLists(a.ID)
+	if err != nil {
+		log.Fatalf("Could not GetLists: %v", err)
+	}
+
+	if len(lists) != 2 {
+		log.Fatalf("Error in GetLists: length is %d, want %d\n", len(lists), 2)
+	}
+
+	if (lists[0].ID != l1.ID || lists[1].ID != l2.ID) &&
+		(lists[0] != l2.ID || lists[1].ID != l1.ID) {
+		log.Fatalf("error in GetLists: didn't get list\n")
+	}
 }

@@ -68,6 +68,8 @@ func (s *Session) Unsubscribe(subID int64) error {
 	return err
 }
 
+// getUnsubscribeSalt gets a random string unique to this installation to salt
+// unsubscribe tokens with as part of the hashing process.
 func getUnsubscribeSalt(s *Session) (string, error) {
 	salt, err := s.dbmap.SelectStr("select value from variable where name='unsubscribe-salt'")
 	if err != nil {
@@ -90,6 +92,9 @@ func getUnsubscribeSalt(s *Session) (string, error) {
 	return salt, nil
 }
 
+// UnsubscribeToken gets a crypographically secure token which represents a
+// subscriber. Using such a token means that only the recepiant of an email can
+// unsubscribe from that mailing list.
 func (s *Session) UnsubscribeToken(sub *Subscriber) (string, error) {
 	salt, err := getUnsubscribeSalt(s)
 	if err != nil {
@@ -102,6 +107,8 @@ func (s *Session) UnsubscribeToken(sub *Subscriber) (string, error) {
 	return fmt.Sprintf("%d~%s", sub.ID, hash), nil
 }
 
+// GetSubscriberByToken retrieves the subscriber associated with a token.
+// Returns an error if the token doesn't match any in the database
 func (s *Session) GetSubscriberByToken(token string) (*Subscriber, error) {
 	ss := strings.Split(token, "~")
 	if len(ss) != 2 {

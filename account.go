@@ -13,7 +13,8 @@ type Account struct {
 }
 
 // InsertAccount adds the database to the account. The ID field will be
-// updated
+// updated. It is an error to have duplicate email addresses for the account
+// table
 func (s *Session) InsertAccount(a *Account) error {
 	if a.Status == "" {
 		a.Status = "active"
@@ -21,6 +22,8 @@ func (s *Session) InsertAccount(a *Account) error {
 	return s.insert(a)
 }
 
+// UpsertAccount updates an account if the associated email address already
+// exists. Otherwise it inserts a new account
 func (s *Session) UpsertAccount(a *Account) error {
 	id, err := s.dbmap.SelectInt("select id from account where email=?", a.Email)
 	if err != nil {

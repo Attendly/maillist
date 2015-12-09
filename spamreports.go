@@ -17,10 +17,13 @@ var (
 )
 
 func init() {
+	// included here to fail loudly on errors
 	convTimeToISO = regexp.MustCompile(`"(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d)"`)
 }
 
-func initSpamReports(s *Session) error {
+// updateSpamReports polls the SendGrid servers for a list of spam reports and
+// populates the spamReports variable as appropriate.
+func updateSpamReports(s *Session) error {
 	if s.config.SendGridUsername == "" {
 		return errors.New("SendGrid username not set")
 	}
@@ -63,9 +66,11 @@ func initSpamReports(s *Session) error {
 	return nil
 }
 
+// HasReportedSpam checks whether an email address has made a spam report
+// against us. Mail should not be sent to such an address.
 func (s *Session) HasReportedSpam(email string) (bool, error) {
 	if spamReports == nil || time.Now().Sub(spamReportsUpdated) > 6*time.Hour {
-		if err := initSpamReports(s); err != nil {
+		if err := updateSpamReports(s); err != nil {
 			return false, err
 		}
 	}
