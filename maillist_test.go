@@ -3,6 +3,7 @@ package maillist_test
 import (
 	"log"
 	"os"
+	"testing"
 	"time"
 
 	"github.com/Attendly/maillist"
@@ -20,6 +21,7 @@ func Example() {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		JustPrint:       true,
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
 		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
@@ -104,6 +106,7 @@ func ExampleWithEvent() {
 		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		GetAttendeesCallback: getAttendees,
 		JustPrint:            true,
+		UnsubscribeURL:       "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
 		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
@@ -155,23 +158,49 @@ func ExampleWithEvent() {
 	// This is a test of attendly email list service
 }
 
-// func TestGetSpamReports(t *testing.T) {
+func TestGetSpamReports(t *testing.T) {
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		JustPrint:       true,
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
-// config := maillist.Config{
-// DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-// JustPrint:       true,
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
 
-// SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-// SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-// SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
-// }
+	s, err := maillist.OpenSession(&config)
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
 
-// s, err := maillist.OpenSession(&config)
-// if err != nil {
-// t.Errorf("%v", err)
-// }
+	if b, err := s.HasReportedSpam("example@example.com"); err != nil {
+		t.Fatalf("error: %v\n", err)
+	} else if b {
+		t.Fatalf("Example incorrectly has reported spam\n")
+	}
 
-// reports, err := s.GetSpamReports()
+	if b, err := s.HasReportedSpam("jorgen@hotmail.com"); err != nil {
+		t.Fatalf("error: %v\n", err)
+	} else if !b {
+		t.Fatalf("Example incorrectly has not reported spam\n")
+	}
 
-// t.Errorf("%+v\n%+v\n\n", reports, err)
-// }
+	// sub := maillist.Subscriber{ID: 6, Email: "johnny.k@example.com"}
+	// token, err := s.UnsubscribeToken(&sub)
+	// println(token)
+	// if err != nil {
+	// t.Fatalf("error: %v", err)
+	// }
+	// sub2, err := s.GetSubscriberByToken(token)
+	// if err != nil {
+	// t.Fatalf("error:%v", err)
+	// }
+	// if err := s.Unsubscribe(sub2.ID); err != nil {
+	// t.Fatalf("error: %v", err)
+	// }
+
+	// reports, err := s.GetSpamReports()
+
+	// t.Errorf("%+v\n%+v\n\n", reports, err)
+}

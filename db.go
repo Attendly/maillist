@@ -2,6 +2,7 @@ package maillist
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"reflect"
@@ -32,6 +33,9 @@ func (err *ErrNotFound) Error() string {
 }
 
 func openDatabase(address string) (d database, err error) {
+	if address == "" {
+		return d, errors.New("Database address not set")
+	}
 	d.db, err = sql.Open("mysql", address+"?charset=utf8&parseTime=True")
 	if err != nil {
 		return

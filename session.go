@@ -25,6 +25,7 @@ type Config struct {
 	DatabaseAddress      string
 	JustPrint            bool
 	GetAttendeesCallback getAttendeeFunc
+	UnsubscribeURL       string
 
 	SendGridAPIKey   string
 	SendGridUsername string
@@ -114,6 +115,7 @@ next:
 			log.Print(err)
 			break
 		}
+		time.Sleep(time.Second)
 	}
 	goto next
 }

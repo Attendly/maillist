@@ -72,13 +72,14 @@ func (s *Session) sendCampaign(campaignID int64) error {
 	for _, eventID := range eventIDs {
 		subs := s.config.GetAttendeesCallback(eventID)
 		for _, sub := range subs {
-			if subs2[sub.Email] == nil {
-				err := s.GetOrInsertSubscriber(sub)
-				if err != nil {
-					return err
-				}
-				subs2[sub.Email] = sub
+			if subs2[sub.Email] != nil {
+				continue
 			}
+
+			if err := s.GetOrInsertSubscriber(sub); err != nil {
+				return err
+			}
+			subs2[sub.Email] = sub
 		}
 	}
 

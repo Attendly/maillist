@@ -1,8 +1,14 @@
 package maillist
 
 import (
+	"crypto/rand"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/base64"
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // Subscriber stores a single email address and some associated parameters.
@@ -44,8 +50,8 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	if sub.ID != 0 {
 		return nil
 	}
-	query := fmt.Sprintf("select %s from subscriber where email=?", s.selectString(sub))
-	err := s.dbmap.SelectOne(&sub, query, sub.Email)
+	query := fmt.Sprintf("select %s from subscriber where account_id=? and email=?", s.selectString(sub))
+	err := s.dbmap.SelectOne(&sub, query, sub.AccountID, sub.Email)
 	if err != sql.ErrNoRows {
 		return err
 	}
@@ -60,4 +66,64 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 func (s *Session) Unsubscribe(subID int64) error {
 	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", subID)
 	return err
+}
+
+func getUnsubscribeSalt(s *Session) (string, error) {
+	salt, err := s.dbmap.SelectStr("select value from variable where name='unsubscribe-salt'")
+	if err != nil {
+		return "", err
+	}
+	if salt != "" {
+		return salt, nil
+	}
+
+	var buf [64]byte
+	if _, err := rand.Read(buf[:]); err != nil {
+		return "", err
+	}
+	salt = base64.StdEncoding.EncodeToString(buf[:])
+
+	_, err = s.dbmap.Exec("insert into variable (name, value) values ('unsubscribe-salt', ?)", salt)
+	if err != nil {
+		return "", err
+	}
+	return salt, nil
+}
+
+func (s *Session) UnsubscribeToken(sub *Subscriber) (string, error) {
+	salt, err := getUnsubscribeSalt(s)
+	if err != nil {
+		return "", err
+	}
+
+	buf := sha256.Sum224([]byte(salt + sub.Email))
+	hash := base64.URLEncoding.EncodeToString(buf[:])
+
+	return fmt.Sprintf("%d~%s", sub.ID, hash), nil
+}
+
+func (s *Session) GetSubscriberByToken(token string) (*Subscriber, error) {
+	ss := strings.Split(token, "~")
+	if len(ss) != 2 {
+		return nil, errors.New("Unsubscribe token could not be parsed")
+	}
+
+	id, err := strconv.ParseInt(ss[0], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("Unsubscribe token could not be parsed: %v", err)
+	}
+
+	sub, err := s.GetSubscriber(id)
+	if err != nil {
+		return nil, err
+	}
+
+	wantedToken, err := s.UnsubscribeToken(sub)
+	if err != nil {
+		return nil, err
+	}
+	if token != wantedToken {
+		return nil, errors.New("Invalid unsubscribe token")
+	}
+	return sub, nil
 }

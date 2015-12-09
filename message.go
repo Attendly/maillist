@@ -41,9 +41,17 @@ func pendingMessage(s *Session) (*Message, error) {
 
 // sendMessage sends a single message to it's destination
 func (s *Session) sendMessage(m *Message) error {
-	email, err := buildEmail(s, m)
-	if err != nil {
+	var email *sendgrid.SGMail
+	var err error
+
+	if email, err = buildEmail(s, m); err != nil {
 		return err
+	}
+
+	if spam, err := s.HasReportedSpam(email.To[0]); err != nil {
+		return err
+	} else if spam {
+		return nil
 	}
 
 	if s.config.JustPrint {
@@ -56,6 +64,7 @@ func (s *Session) sendMessage(m *Message) error {
 		m.SubscriberID, m.CampaignID); err != nil {
 		return fmt.Errorf("couldn't update message status: %v\n", err)
 	}
+
 	if err = s.updateCampaignStatus(m.CampaignID); err != nil {
 		return fmt.Errorf("couldn't update campaign status: %v\n", err)
 	}
@@ -70,10 +79,12 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get subscriber: %v", err)
 	}
+
 	campaign, err := s.GetCampaign(m.CampaignID)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get campaign %d: %v", m.CampaignID, err)
 	}
+
 	account, err := s.GetAccount(campaign.AccountID)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't get account: %v", err)
@@ -90,7 +101,12 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 		s.templates[m.CampaignID] = t
 	}
 	var buf bytes.Buffer
-	if err := s.templates[m.CampaignID].Execute(&buf, sub); err != nil {
+	token, _ := s.UnsubscribeToken(sub)
+	bodyStruct := struct {
+		FirstName, LastName, UnsubscribeURL string
+	}{sub.FirstName, sub.LastName, s.config.UnsubscribeURL + "/" + token}
+
+	if err := s.templates[m.CampaignID].Execute(&buf, &bodyStruct); err != nil {
 		return nil, err
 	}
 	email.HTML = buf.String()
