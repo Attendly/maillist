@@ -7,10 +7,14 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"time"
 )
 
-var convTimeToISO *regexp.Regexp
-var spamReports map[string]bool
+var (
+	spamReportsUpdated time.Time
+	convTimeToISO      *regexp.Regexp
+	spamReports        map[string]bool
+)
 
 func init() {
 	convTimeToISO = regexp.MustCompile(`"(\d\d\d\d-\d\d-\d\d) (\d\d:\d\d:\d\d)"`)
@@ -60,7 +64,7 @@ func initSpamReports(s *Session) error {
 }
 
 func (s *Session) HasReportedSpam(email string) (bool, error) {
-	if spamReports == nil {
+	if spamReports == nil || time.Now().Sub(spamReportsUpdated) > 6*time.Hour {
 		if err := initSpamReports(s); err != nil {
 			return false, err
 		}

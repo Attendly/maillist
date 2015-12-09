@@ -96,7 +96,7 @@ func (s *Session) UnsubscribeToken(sub *Subscriber) (string, error) {
 		return "", err
 	}
 
-	buf := sha256.Sum224([]byte(salt + sub.Email))
+	buf := sha256.Sum256([]byte(salt + sub.Email))
 	hash := base64.URLEncoding.EncodeToString(buf[:])
 
 	return fmt.Sprintf("%d~%s", sub.ID, hash), nil
