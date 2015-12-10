@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -60,7 +59,6 @@ func (s *Session) sendCampaign(campaignID int64) error {
 
 	c, err := s.GetCampaign(campaignID)
 	if err != nil {
-		log.Printf("%+v\n", err)
 		return err
 	}
 
@@ -86,7 +84,6 @@ func (s *Session) sendCampaign(campaignID int64) error {
 	for _, listID := range listIDs {
 		subs, err := s.GetSubscribers(listID)
 		if err != nil {
-			log.Printf("%+v\n", err)
 			return err
 		}
 		for _, sub := range subs {
@@ -108,7 +105,6 @@ func (s *Session) sendCampaign(campaignID int64) error {
 		}
 
 		if err = s.InsertMessage(&m); err != nil {
-			log.Printf("%+v\n", err)
 			break
 		}
 	}

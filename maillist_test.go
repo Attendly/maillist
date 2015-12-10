@@ -21,7 +21,8 @@ func Example() {
 
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
-		JustPrint:       os.Stdout,
+		JustPrint:       true,
+		Logger:          os.Stdout,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -108,7 +109,8 @@ func TestGetAttendeesCallback(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		GetAttendeesCallback: getAttendees,
-		JustPrint:            &buf,
+		JustPrint:            true,
+		Logger:               &buf,
 		UnsubscribeURL:       "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
@@ -169,6 +171,7 @@ func TestGetSpamReports(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
 		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
@@ -194,29 +197,42 @@ func TestGetSpamReports(t *testing.T) {
 }
 
 func TestUnsubscribeToken(t *testing.T) {
+	var (
+		err       error
+		token     string
+		sub, sub2 *maillist.Subscriber
+		s         *maillist.Session
+	)
 
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
 		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
 		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
 	}
 
-	s, err := maillist.OpenSession(&config)
-	if err != nil {
+	if s, err = maillist.OpenSession(&config); err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	sub := maillist.Subscriber{ID: 6, Email: "johnny.k@example.com"}
-	token, err := s.UnsubscribeToken(&sub)
-	if err != nil {
+	sub = &maillist.Subscriber{
+		FirstName: "Johnny",
+		LastName:  "Knoxville",
+		Email:     "johnny.k@example.com",
+	}
+
+	if err = s.GetOrInsertSubscriber(sub); err != nil {
 		t.Fatalf("error: %v", err)
 	}
 
-	sub2, err := s.GetSubscriberByToken(token)
-	if err != nil {
+	if token, err = s.UnsubscribeToken(sub); err != nil {
+		t.Fatalf("error: %v", err)
+	}
+
+	if sub2, err = s.GetSubscriberByToken(token); err != nil {
 		t.Fatalf("error:%v", err)
 	}
 	if sub.ID != sub2.ID {
@@ -228,6 +244,7 @@ func TestGetLists(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
 
 		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
 		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),

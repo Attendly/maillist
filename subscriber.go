@@ -63,8 +63,8 @@ func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 
 // Unsubscribe marks a subscriber as not wanting to recieve any more marketting
 // emails
-func (s *Session) Unsubscribe(subID int64) error {
-	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", subID)
+func (s *Session) Unsubscribe(sub *Subscriber) error {
+	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", sub.ID)
 	return err
 }
 

@@ -1,9 +1,11 @@
 package maillist
 
 import (
+	"errors"
+	"fmt"
 	"html/template"
 	"io"
-	"log"
+	"os"
 	"time"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -24,7 +26,8 @@ type Session struct {
 // Config stores application defined options
 type Config struct {
 	DatabaseAddress      string
-	JustPrint            io.Writer
+	JustPrint            bool
+	Logger               io.Writer
 	GetAttendeesCallback getAttendeeFunc
 	UnsubscribeURL       string
 
@@ -45,6 +48,22 @@ func OpenSession(config *Config) (*Session, error) {
 	}
 
 	s.config = *config
+
+	if !config.JustPrint {
+		if config.SendGridAPIKey == "" {
+			return nil, errors.New("maillist: SendGridAPIKey must be set")
+		}
+		if config.SendGridUsername == "" {
+			return nil, errors.New("maillist: SendGridUsername must be set")
+		}
+		if config.SendGridPassword == "" {
+			return nil, errors.New("maillist: SendGridPassword must be set")
+		}
+	}
+
+	if s.config.Logger == nil {
+		s.config.Logger = os.Stderr
+	}
 
 	s.addTable(Account{}, "account")
 	s.addTable(List{}, "list")
@@ -89,7 +108,7 @@ next:
 	for {
 		c, err := getDueCampaign(s)
 		if err != nil {
-			log.Printf("error: %v\n", err)
+			s.logf("couldn't retrieve due campaign: %v\n", err)
 			break
 		}
 		if c == nil {
@@ -97,7 +116,7 @@ next:
 		}
 
 		if err = s.sendCampaign(c.ID); err != nil {
-			log.Printf("error: %v\n", err)
+			s.logf("couldn't send campaign: %v\n", err)
 			break
 		}
 	}
@@ -105,7 +124,7 @@ next:
 	for {
 		m, err := pendingMessage(s)
 		if err != nil {
-			log.Printf("error: %v\n", err)
+			s.logf("couldn't retrieve pending message: %v\n", err)
 			break
 		}
 		if m == nil {
@@ -113,10 +132,14 @@ next:
 		}
 
 		if err = s.sendMessage(m); err != nil {
-			log.Print(err)
+			s.logf("couldn't send message: %v\n", err)
 			break
 		}
 		time.Sleep(time.Second)
 	}
 	goto next
+}
+
+func (s *Session) logf(format string, args ...interface{}) {
+	fmt.Fprintf(s.config.Logger, format, args)
 }

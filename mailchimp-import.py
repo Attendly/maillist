@@ -12,8 +12,11 @@ listname = 'imported-list ' + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%
 conn = pymysql.connect(unix_socket='/run/mysqld/mysqld.sock', user='tt', passwd='tt', db='attendly_email_service')
 cur = conn.cursor()
 
-cur.execute("select id from account where email=%s", (accountemail))
+f = cur.execute("select id from account where email=%s", (accountemail))
 accountid= cur.fetchone()[0]
+# if f != 0:
+# else:
+    # cur.execute("insert into account (first_name, last_name, email, status) values ('
 
 cur.execute("insert into list (account_id, name, status) values (%s, %s, 'active')", (accountid, listname))
 listid = cur.lastrowid
