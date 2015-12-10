@@ -5,10 +5,11 @@ import "fmt"
 // List represents a user defined mailing list, these are seperate from
 // event-associated lists
 type List struct {
-	ID        int64  `db:"id"`
-	AccountID int64  `db:"account_id" validate:"required"`
-	Name      string `db:"name" validate:"required"`
-	Status    string `db:"status" validate:"eq=active|eq=deleted"`
+	ID         int64  `db:"id"`
+	AccountID  int64  `db:"account_id" validate:"required"`
+	Name       string `db:"name" validate:"required"`
+	Status     string `db:"status" validate:"eq=active|eq=deleted"`
+	CreateTime int64  `db:"create_time" validate:"required"`
 }
 
 // ListSubscriber represents a joining table for list and subscribers
@@ -16,6 +17,7 @@ type ListSubscriber struct {
 	ListID       int64  `db:"list_id" validate:"required"`
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	Status       string `db:"status" validate:"eq=active|eq=deleted"`
+	CreateTime   int64  `db:"create_time" validate:"required"`
 }
 
 // GetLists retrieves all the mailing lists associated with an account.

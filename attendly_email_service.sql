@@ -28,9 +28,10 @@ CREATE TABLE `account` (
   `last_name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `status` enum('active','deleted') NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -46,13 +47,14 @@ CREATE TABLE `campaign` (
   `subject` varchar(255) NOT NULL,
   `body` longtext NOT NULL,
   `status` enum('scheduled','pending','sent','deleted','failed') NOT NULL,
-  `scheduled` datetime NOT NULL,
+  `scheduled` bigint(20) NOT NULL,
   `list_ids` varchar(255) NOT NULL,
   `event_ids` varchar(255) NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `account_id` (`account_id`),
   CONSTRAINT `campaign_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=58 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -67,10 +69,11 @@ CREATE TABLE `list` (
   `account_id` bigint(20) NOT NULL,
   `name` varchar(255) NOT NULL,
   `status` enum('active','deleted') NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `list_ibfk_1` (`account_id`),
   CONSTRAINT `list_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=39 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=104 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,6 +87,7 @@ CREATE TABLE `list_subscriber` (
   `list_id` bigint(20) NOT NULL,
   `subscriber_id` bigint(20) NOT NULL,
   `status` enum('active','deleted') NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`list_id`,`subscriber_id`),
   KEY `subscriber_id` (`subscriber_id`),
   CONSTRAINT `list_subscriber_ibfk_1` FOREIGN KEY (`list_id`) REFERENCES `list` (`id`),
@@ -102,6 +106,7 @@ CREATE TABLE `message` (
   `subscriber_id` bigint(20) NOT NULL,
   `campaign_id` bigint(20) NOT NULL,
   `status` enum('pending','sent') NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`subscriber_id`,`campaign_id`),
   KEY `campaign_id` (`campaign_id`),
   CONSTRAINT `message_ibfk_1` FOREIGN KEY (`subscriber_id`) REFERENCES `subscriber` (`id`),
@@ -123,10 +128,11 @@ CREATE TABLE `subscriber` (
   `last_name` varchar(255) NOT NULL,
   `email` varchar(255) NOT NULL,
   `status` enum('active','deleted') NOT NULL,
+  `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `account_id` (`account_id`,`email`),
   CONSTRAINT `subscriber_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -152,4 +158,4 @@ CREATE TABLE `variable` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-12-09 10:37:59
+-- Dump completed on 2015-12-10 14:31:04

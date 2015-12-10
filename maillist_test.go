@@ -69,7 +69,7 @@ func Example() {
 		AccountID: a.ID,
 		Subject:   "Awesome Event 2016",
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
-		Scheduled: time.Now(),
+		Scheduled: time.Now().Unix(),
 	}
 	if err = s.InsertCampaign(&c, []int64{l.ID}, nil); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -144,7 +144,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 		AccountID: a.ID,
 		Subject:   "Awesome Event 2016",
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
-		Scheduled: time.Now(),
+		Scheduled: time.Now().Unix(),
 	}
 	if err = s.InsertCampaign(&c, nil, []int64{5}); err != nil {
 		log.Fatalf("error: %v\n", err)

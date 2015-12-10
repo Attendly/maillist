@@ -15,6 +15,7 @@ type Message struct {
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	CampaignID   int64  `db:"campaign_id" validate:"required"`
 	Status       string `db:"status" validate:"eq=pending|eq=sent"`
+	CreateTime   int64  `db:"create_time" validate:"required"`
 }
 
 // InsertMessage inserts a message into the database. It's ID field will be

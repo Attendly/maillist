@@ -15,12 +15,13 @@ import (
 // Each subscriber must have an associated account, and a given email address
 // will have one subscriber for each account
 type Subscriber struct {
-	ID        int64  `db:"id"`
-	AccountID int64  `db:"account_id" validate:"required"`
-	FirstName string `db:"first_name" validate:"required"`
-	LastName  string `db:"last_name" validate:"required"`
-	Email     string `db:"email" validate:"required,email"`
-	Status    string `db:"status" validate:"eq=active|eq=deleted"`
+	ID         int64  `db:"id"`
+	AccountID  int64  `db:"account_id" validate:"required"`
+	FirstName  string `db:"first_name" validate:"required"`
+	LastName   string `db:"last_name" validate:"required"`
+	Email      string `db:"email" validate:"required,email"`
+	Status     string `db:"status" validate:"eq=active|eq=deleted"`
+	CreateTime int64  `db:"create_time" validate:"required"`
 }
 
 // GetSubscribers retrieves all the subscribers in a mailing list

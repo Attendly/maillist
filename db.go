@@ -7,6 +7,7 @@ import (
 	"log"
 	"reflect"
 	"strings"
+	"time"
 
 	"gopkg.in/go-playground/validator.v8"
 
@@ -54,6 +55,9 @@ func openDatabase(address string) (d database, err error) {
 }
 
 func (d *database) insert(i interface{}) error {
+
+	reflect.Indirect(reflect.ValueOf(i)).FieldByName("CreateTime").SetInt(time.Now().Unix())
+
 	if err := validate.Struct(i); err != nil {
 		return err
 	}

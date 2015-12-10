@@ -12,14 +12,15 @@ import (
 // Campaign is a message template sent at a particular time to one or more
 // mailing lists
 type Campaign struct {
-	ID        int64     `db:"id"`
-	AccountID int64     `db:"account_id" validate:"required"`
-	Subject   string    `db:"subject" validate:"required"`
-	Body      string    `db:"body" validate:"required"`
-	Status    string    `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed"`
-	Scheduled time.Time `db:"scheduled" validate:"required"`
-	ListIDs   string    `db:"list_ids" validate:"-"`
-	EventIDs  string    `db:"event_ids" validate:"-"`
+	ID         int64  `db:"id"`
+	AccountID  int64  `db:"account_id" validate:"required"`
+	Subject    string `db:"subject" validate:"required"`
+	Body       string `db:"body" validate:"required"`
+	Status     string `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed"`
+	ListIDs    string `db:"list_ids" validate:"-"`
+	EventIDs   string `db:"event_ids" validate:"-"`
+	Scheduled  int64  `db:"scheduled" validate:"required"`
+	CreateTime int64  `db:"create_time" validate:"required"`
 }
 
 // InsertCampaign adds the campaign to the scheduler to be sent to all its
@@ -120,7 +121,7 @@ func getDueCampaign(s *Session) (*Campaign, error) {
 		`select %s from campaign where status='scheduled' and scheduled<=? limit 1`,
 		s.selectString(&c))
 
-	err := s.dbmap.SelectOne(&c, query, time.Now())
+	err := s.dbmap.SelectOne(&c, query, time.Now().Unix())
 	if err == nil {
 		return &c, nil
 	}
