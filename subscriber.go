@@ -48,8 +48,21 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 // duplicate subscribers.
 func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
 	if sub.ID != 0 {
-		return nil
+		return errors.New("ID should not be set for GetOrInsertSubscriber")
 	}
+
+	if accountStatus, err := s.dbmap.SelectStr(
+		"select account.status from account where id=?",
+		sub.AccountID); err != nil {
+		return err
+	} else if accountStatus == "" {
+		return fmt.Errorf("could not find account id=%d",
+			sub.AccountID)
+	} else if accountStatus == "deleted" {
+		return fmt.Errorf("adding subscriber to deleted account id=%d",
+			sub.AccountID)
+	}
+
 	query := fmt.Sprintf("select %s from subscriber where account_id=? and email=?", s.selectString(sub))
 	err := s.dbmap.SelectOne(&sub, query, sub.AccountID, sub.Email)
 	if err != sql.ErrNoRows {
@@ -101,7 +114,7 @@ func (s *Session) UnsubscribeToken(sub *Subscriber) (string, error) {
 		return "", err
 	}
 
-	buf := sha256.Sum256([]byte(salt + sub.Email))
+	buf := sha256.Sum256([]byte(salt + sub.Email + strconv.FormatInt(sub.ID, 10)))
 	hash := base64.URLEncoding.EncodeToString(buf[:])
 
 	return fmt.Sprintf("%d~%s", sub.ID, hash), nil

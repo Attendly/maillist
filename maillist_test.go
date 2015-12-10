@@ -37,7 +37,7 @@ func Example() {
 	a := maillist.Account{
 		FirstName: "Joe",
 		LastName:  "Bloggs",
-		Email:     "sendgrid@eventarc.com",
+		Email:     "sendgrid@example.com",
 	}
 	if err := s.UpsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -82,7 +82,7 @@ func Example() {
 	// Output:
 	// Email to send
 	// To: tom@attendly.com (Tommy Barker)
-	// From: sendgrid@eventarc.com (Joe Bloggs)
+	// From: sendgrid@example.com (Joe Bloggs)
 	// Subject: Awesome Event 2016
 	// Body: Hi Tommy Barker,
 	// This is a test of attendly email list service
@@ -218,12 +218,24 @@ func TestUnsubscribeToken(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	a := maillist.Account{
+		FirstName: "Ray",
+		LastName:  "Charles",
+		Email:     "raycharles@example.com",
+	}
+	if err := s.UpsertAccount(&a); err != nil {
+		log.Fatalf("error: %v\n", err)
+	}
+	defer s.DeleteAccount(a.ID)
+
 	sub = &maillist.Subscriber{
+		AccountID: a.ID,
 		FirstName: "Johnny",
 		LastName:  "Knoxville",
 		Email:     "johnny.k@example.com",
 	}
 
+	// t.Fatalf("probs: %+v", sub)
 	if err = s.GetOrInsertSubscriber(sub); err != nil {
 		t.Fatalf("error: %v", err)
 	}
@@ -301,5 +313,117 @@ func TestGetLists(t *testing.T) {
 
 	if err := s.DeleteList(l2.ID); err != nil {
 		log.Fatalf("Could not delete mailing lists: %v", err)
+	}
+}
+
+func TestMultipleAccounts(t *testing.T) {
+
+	var (
+		err error
+		s   *maillist.Session
+	)
+
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
+
+	if s, err = maillist.OpenSession(&config); err != nil {
+		t.Fatalf("Could not open session: %v", err)
+	}
+
+	a1 := maillist.Account{
+		FirstName: "Test",
+		LastName:  "MultipleAccounts1",
+		Email:     "testmultipleaccounts1@example.com",
+	}
+	a2 := maillist.Account{
+		FirstName: "Test",
+		LastName:  "MultipleAccounts2",
+		Email:     "testmultipleaccounts2@example.com",
+	}
+	if err := s.UpsertAccount(&a1); err != nil {
+		t.Fatalf("Could not insert account: %v\n", err)
+	}
+	if err := s.UpsertAccount(&a2); err != nil {
+		t.Fatalf("Could not insert account: %v\n", err)
+	}
+
+	l1 := maillist.List{
+		AccountID: a1.ID,
+		Name:      "Testmultipleaccounts1",
+	}
+
+	l2 := maillist.List{
+		AccountID: a2.ID,
+		Name:      "Testmultipleaccounts2",
+	}
+
+	if err := s.InsertList(&l1); err != nil {
+		t.Fatalf("Could not insert list: %v\n", err)
+	}
+	defer s.DeleteList(l1.ID)
+	if err := s.InsertList(&l2); err != nil {
+		t.Fatalf("Could not insert list: %v\n", err)
+	}
+	defer s.DeleteList(l2.ID)
+
+	var ls1 []*maillist.List
+	if ls1, err = s.GetLists(a1.ID); err != nil {
+		t.Fatalf("Could not retrieve lists: %v\n", err)
+	}
+	var ls2 []*maillist.List
+	if ls2, err = s.GetLists(a2.ID); err != nil {
+		t.Fatalf("Could not retrieve lists: %v\n", err)
+	}
+	if len(ls1) != 1 || ls1[0].ID != l1.ID || ls1[0].AccountID != a1.ID {
+		t.Fatalf("Get list incorrect result\ngot:%+vwanted:%+v\n", ls1, l1)
+	}
+	if len(ls2) != 1 || ls2[0].ID != l2.ID || ls2[0].AccountID != a2.ID {
+		t.Fatalf("Get list incorrect result\ngot:%+vwanted:%+v\n", ls2, l2)
+	}
+
+	s1 := maillist.Subscriber{
+		AccountID: a1.ID,
+		FirstName: "TestMultipleAccounts",
+		LastName:  "1",
+		Email:     "testingmultipleaccounts@example.com",
+	}
+	s2 := maillist.Subscriber{
+		AccountID: a2.ID,
+		FirstName: "TestMultipleAccounts",
+		LastName:  "1",
+		Email:     "testingmultipleaccounts@example.com",
+	}
+	if err = s.GetOrInsertSubscriber(&s1); err != nil {
+		t.Fatalf("Could not insert subscriber: %v\n", err)
+	}
+	if err = s.GetOrInsertSubscriber(&s2); err != nil {
+		t.Fatalf("Could not insert subscriber: %v\n", err)
+	}
+	if s1.ID == s2.ID {
+		t.Fatalf("Subscribers should have been added to different accounts")
+	}
+
+	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
+		t.Fatal("Could not add subscriber to list: %v\n", err)
+	}
+	defer s.RemoveSubscriberFromList(l1.ID, s1.ID)
+
+	if err = s.AddSubscriberToList(l2.ID, s2.ID); err != nil {
+		t.Fatal("Could not add subscriber to list: %v\n", err)
+	}
+	defer s.RemoveSubscriberFromList(l2.ID, s2.ID)
+
+	if err = s.AddSubscriberToList(l1.ID, s2.ID); err == nil {
+		t.Fatal("Expected error when adding subscriber to list with different account")
+	}
+	if err = s.AddSubscriberToList(l2.ID, s1.ID); err == nil {
+		t.Fatal("Expected error when adding subscriber to list with different account")
 	}
 }

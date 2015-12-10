@@ -62,10 +62,44 @@ func (s *Session) DeleteList(listID int64) error {
 // AddSubscriberToList adds a subscriber to a mailing list. Internally it is
 // added to the list_subscriber joining table
 func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
+
+	listAccountID, err := s.dbmap.SelectInt("select account_id from list where status!='deleted' and id=?",
+		listID)
+	if err != nil {
+		return err
+	}
+	if listAccountID == 0 {
+		return fmt.Errorf("Could not find associated account of list id:%d",
+			listID)
+	}
+
+	subscriberAccountID, err := s.dbmap.SelectInt(
+		"select account_id from subscriber where status!='deleted' and id=?",
+		subscriberID)
+	if err != nil {
+		return err
+	}
+	if subscriberAccountID == 0 {
+		return fmt.Errorf("Could not find associated account of subscriber id:%d",
+			subscriberID)
+	}
+
+	if listAccountID != subscriberAccountID {
+		return fmt.Errorf("List and subscriber must be in the same account")
+	}
+
 	ls := ListSubscriber{
 		ListID:       listID,
 		SubscriberID: subscriberID,
 		Status:       "active",
 	}
+
 	return s.insert(&ls)
+}
+
+func (s *Session) RemoveSubscriberFromList(listID, subscriberID int64) error {
+	_, err := s.dbmap.Exec(
+		"delete from list_subscriber where list_id=? and subscriber_id=?",
+		listID, subscriberID)
+	return err
 }
