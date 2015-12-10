@@ -20,7 +20,7 @@ type Subscriber struct {
 	FirstName  string `db:"first_name" validate:"required"`
 	LastName   string `db:"last_name" validate:"required"`
 	Email      string `db:"email" validate:"required,email"`
-	Status     string `db:"status" validate:"eq=active|eq=deleted"`
+	Status     string `db:"status" validate:"eq=active|eq=deleted|eq=unsubscribed"`
 	CreateTime int64  `db:"create_time" validate:"required"`
 }
 
@@ -28,57 +28,85 @@ type Subscriber struct {
 func (s *Session) GetSubscribers(listID int64) ([]*Subscriber, error) {
 	var subs []*Subscriber
 
-	sql := fmt.Sprintf("select %s from subscriber inner join list_subscriber on subscriber.id = subscriber_id where list_id=?", s.selectString(&Subscriber{}))
+	sql := fmt.Sprintf("select %s from subscriber inner join list_subscriber on subscriber.id = subscriber_id where list_id=? and subscriber.status='active' and list_subscriber.status='active'", s.selectString(&Subscriber{}))
 	if _, err := s.dbmap.Select(&subs, sql, listID); err != nil {
 		return nil, err
 	}
 	return subs, nil
 }
 
-// GetSubscriber retrieves a subscriber with a given ID
+// GetSubscriber retrieves a subscriber with a given ID. Returns nil,nil if no
+// such subscriber exists
 func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	var sub Subscriber
-	sql := fmt.Sprintf("select %s from subscriber where id=?",
+	query := fmt.Sprintf("select %s from subscriber where id=? and status!='deleted'",
 		s.selectString(&sub))
-	err := s.dbmap.SelectOne(&sub, sql, subscriberID)
+	err := s.dbmap.SelectOne(&sub, query, subscriberID)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
 	return &sub, err
 }
 
-// GetOrInsertSubscriber retrieves a subscriber from the database if it cannot
-// be found. Otherwise adds a new entry. This is mostly used to prevent
-// duplicate subscribers.
-func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
-	if sub.ID != 0 {
-		return errors.New("ID should not be set for GetOrInsertSubscriber")
+// GetSubscriberByEmail retrieves a subscriber with a given email address.
+// Returns nil,nil if no such subscriber exists
+func (s *Session) GetSubscriberByEmail(email string) (*Subscriber, error) {
+	var sub Subscriber
+	query := fmt.Sprintf("select %s from subscriber where email=? and status!='deleted'",
+		s.selectString(&sub))
+	err := s.dbmap.SelectOne(&sub, query, email)
+	if err == sql.ErrNoRows {
+		return nil, nil
 	}
+	return &sub, err
+}
 
-	if accountStatus, err := s.dbmap.SelectStr(
-		"select account.status from account where id=?",
-		sub.AccountID); err != nil {
-		return err
-	} else if accountStatus == "" {
-		return fmt.Errorf("could not find account id=%d",
-			sub.AccountID)
-	} else if accountStatus == "deleted" {
-		return fmt.Errorf("adding subscriber to deleted account id=%d",
-			sub.AccountID)
-	}
-
-	query := fmt.Sprintf("select %s from subscriber where account_id=? and email=?", s.selectString(sub))
-	err := s.dbmap.SelectOne(&sub, query, sub.AccountID, sub.Email)
-	if err != sql.ErrNoRows {
-		return err
-	}
+func (s *Session) InsertSubscriber(sub *Subscriber) error {
 	if sub.Status == "" {
 		sub.Status = "active"
 	}
 	return s.insert(sub)
 }
 
+func (s *Session) DeleteSubscriber(id int64) error {
+	return s.delete(Subscriber{}, id)
+}
+
+// // GetOrInsertSubscriber retrieves a subscriber from the database if it cannot
+// // be found. Otherwise adds a new entry. This is mostly used to prevent
+// // duplicate subscribers.
+// func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
+// if sub.ID != 0 {
+// return errors.New("ID should not be set for GetOrInsertSubscriber")
+// }
+
+// if accountStatus, err := s.dbmap.SelectStr(
+// "select account.status from account where id=?",
+// sub.AccountID); err != nil {
+// return err
+// } else if accountStatus == "" {
+// return fmt.Errorf("could not find account id=%d",
+// sub.AccountID)
+// } else if accountStatus == "deleted" {
+// return fmt.Errorf("adding subscriber to deleted account id=%d",
+// sub.AccountID)
+// }
+
+// query := fmt.Sprintf("select %s from subscriber where account_id=? and email=?", s.selectString(sub))
+// err := s.dbmap.SelectOne(&sub, query, sub.AccountID, sub.Email)
+// if err != sql.ErrNoRows {
+// return err
+// }
+// if sub.Status == "" {
+// sub.Status = "active"
+// }
+// return s.insert(sub)
+// }
+
 // Unsubscribe marks a subscriber as not wanting to recieve any more marketting
 // emails
 func (s *Session) Unsubscribe(sub *Subscriber) error {
-	_, err := s.dbmap.Exec("update subscriber set status='deleted' where id=?", sub.ID)
+	_, err := s.dbmap.Exec("update subscriber set status='unsubscribed' where id=?", sub.ID)
 	return err
 }
 

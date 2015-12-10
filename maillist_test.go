@@ -59,9 +59,10 @@ func Example() {
 		LastName:  "Barker",
 		Email:     "tom@attendly.com",
 	}
-	if err = s.GetOrInsertSubscriber(&sub); err != nil {
+	if err = s.InsertSubscriber(&sub); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.DeleteSubscriber(sub.ID)
 
 	if err = s.AddSubscriberToList(l.ID, sub.ID); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -235,10 +236,10 @@ func TestUnsubscribeToken(t *testing.T) {
 		Email:     "johnny.k@example.com",
 	}
 
-	// t.Fatalf("probs: %+v", sub)
-	if err = s.GetOrInsertSubscriber(sub); err != nil {
+	if err = s.InsertSubscriber(sub); err != nil {
 		t.Fatalf("error: %v", err)
 	}
+	defer s.DeleteSubscriber(sub.ID)
 
 	if token, err = s.UnsubscribeToken(sub); err != nil {
 		t.Fatalf("error: %v", err)
@@ -404,12 +405,16 @@ func TestMultipleAccounts(t *testing.T) {
 		LastName:  "1",
 		Email:     "testingmultipleaccounts@example.com",
 	}
-	if err = s.GetOrInsertSubscriber(&s1); err != nil {
+	if err = s.InsertSubscriber(&s1); err != nil {
 		t.Fatalf("Could not insert subscriber: %v\n", err)
 	}
-	if err = s.GetOrInsertSubscriber(&s2); err != nil {
+	defer s.DeleteSubscriber(s1.ID)
+
+	if err = s.InsertSubscriber(&s2); err != nil {
 		t.Fatalf("Could not insert subscriber: %v\n", err)
 	}
+	defer s.DeleteSubscriber(s2.ID)
+
 	if s1.ID == s2.ID {
 		t.Fatalf("Subscribers should have been added to different accounts")
 	}

@@ -66,36 +66,45 @@ func (s *Session) sendCampaign(campaignID int64) error {
 	listIDs := stringToInts(c.ListIDs)
 	eventIDs := stringToInts(c.EventIDs)
 
-	subs2 := make(map[string]*Subscriber)
+	subsToSend := make(map[string]*Subscriber)
 
+	// Add all the subscribers campaign events to subsToSend
 	for _, eventID := range eventIDs {
 		subs := s.config.GetAttendeesCallback(eventID)
 		for _, sub := range subs {
-			if subs2[sub.Email] != nil {
+			if subsToSend[sub.Email] != nil {
 				continue
 			}
 
-			if err := s.GetOrInsertSubscriber(sub); err != nil {
+			if sub2, err := s.GetSubscriberByEmail(sub.Email); err != nil {
+				return err
+			} else if sub2 != nil {
+				subsToSend[sub.Email] = sub2
+				continue
+			}
+
+			if err := s.InsertSubscriber(sub); err != nil {
 				return err
 			}
-			subs2[sub.Email] = sub
+			subsToSend[sub.Email] = sub
 		}
 	}
 
+	// Add all the subscribers in the campaign lists to subsToSend
 	for _, listID := range listIDs {
 		subs, err := s.GetSubscribers(listID)
 		if err != nil {
 			return err
 		}
 		for _, sub := range subs {
-			if subs2[sub.Email] == nil {
-				subs2[sub.Email] = sub
+			if subsToSend[sub.Email] == nil {
+				subsToSend[sub.Email] = sub
 			}
 		}
 	}
 
-	for _, sub := range subs2 {
-		if sub.Status == "deleted" {
+	for _, sub := range subsToSend {
+		if sub.Status != "active" {
 			continue
 		}
 
