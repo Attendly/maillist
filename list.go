@@ -99,6 +99,8 @@ func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 	return s.insert(&ls)
 }
 
+// RemoveSubscriberFromList removes a subscriber from a list. Note this is
+// distinct from unsubscribing which is done on an account basis
 func (s *Session) RemoveSubscriberFromList(listID, subscriberID int64) error {
 	_, err := s.dbmap.Exec(
 		"delete from list_subscriber where list_id=? and subscriber_id=?",

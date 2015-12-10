@@ -33,15 +33,17 @@ func Example() {
 	if s, err = maillist.OpenSession(&config); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.Close()
 
 	a := maillist.Account{
 		FirstName: "Joe",
 		LastName:  "Bloggs",
 		Email:     "sendgrid@example.com",
 	}
-	if err := s.UpsertAccount(&a); err != nil {
+	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.DeleteAccount(a.ID)
 
 	l := maillist.List{
 		AccountID: a.ID,
@@ -75,9 +77,6 @@ func Example() {
 		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
-	if err := s.Close(); err != nil {
-		log.Fatalf("could not close session: %v", err)
-	}
 
 	// Output:
 	// Email to send
@@ -121,15 +120,17 @@ func TestGetAttendeesCallback(t *testing.T) {
 	if s, err = maillist.OpenSession(&config); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.Close()
 
 	a := maillist.Account{
 		FirstName: "Spamface",
 		LastName:  "The Bold",
 		Email:     "example@example.com",
 	}
-	if err := s.UpsertAccount(&a); err != nil {
+	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.DeleteAccount(a.ID)
 	accountID = a.ID
 
 	l := maillist.List{
@@ -150,9 +151,6 @@ func TestGetAttendeesCallback(t *testing.T) {
 		log.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
-	if err := s.Close(); err != nil {
-		log.Fatalf("could not close session: %v", err)
-	}
 
 	out := buf.String()
 	want := `Email to send
@@ -182,6 +180,7 @@ func TestGetSpamReports(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	defer s.Close()
 
 	if b, err := s.HasReportedSpam("example@example.com"); err != nil {
 		t.Fatalf("error: %v\n", err)
@@ -217,13 +216,14 @@ func TestUnsubscribeToken(t *testing.T) {
 	if s, err = maillist.OpenSession(&config); err != nil {
 		t.Fatalf("%v", err)
 	}
+	defer s.Close()
 
 	a := maillist.Account{
 		FirstName: "Ray",
 		LastName:  "Charles",
 		Email:     "raycharles@example.com",
 	}
-	if err := s.UpsertAccount(&a); err != nil {
+	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
 	defer s.DeleteAccount(a.ID)
@@ -267,15 +267,17 @@ func TestGetLists(t *testing.T) {
 	if err != nil {
 		t.Fatalf("%v", err)
 	}
+	defer s.Close()
 
 	a := maillist.Account{
 		FirstName: "Brian",
 		LastName:  "Cohen",
 		Email:     "briancohen@example.com",
 	}
-	if err := s.UpsertAccount(&a); err != nil {
+	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
 	}
+	defer s.DeleteAccount(a.ID)
 
 	l1 := maillist.List{
 		AccountID: a.ID,
@@ -317,7 +319,6 @@ func TestGetLists(t *testing.T) {
 }
 
 func TestMultipleAccounts(t *testing.T) {
-
 	var (
 		err error
 		s   *maillist.Session
@@ -336,6 +337,7 @@ func TestMultipleAccounts(t *testing.T) {
 	if s, err = maillist.OpenSession(&config); err != nil {
 		t.Fatalf("Could not open session: %v", err)
 	}
+	defer s.Close()
 
 	a1 := maillist.Account{
 		FirstName: "Test",
@@ -347,12 +349,14 @@ func TestMultipleAccounts(t *testing.T) {
 		LastName:  "MultipleAccounts2",
 		Email:     "testmultipleaccounts2@example.com",
 	}
-	if err := s.UpsertAccount(&a1); err != nil {
+	if err := s.InsertAccount(&a1); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
 	}
-	if err := s.UpsertAccount(&a2); err != nil {
+	defer s.DeleteAccount(a1.ID)
+	if err := s.InsertAccount(&a2); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
 	}
+	defer s.DeleteAccount(a2.ID)
 
 	l1 := maillist.List{
 		AccountID: a1.ID,
@@ -411,12 +415,12 @@ func TestMultipleAccounts(t *testing.T) {
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
-		t.Fatal("Could not add subscriber to list: %v\n", err)
+		t.Fatalf("Could not add subscriber to list: %v\n", err)
 	}
 	defer s.RemoveSubscriberFromList(l1.ID, s1.ID)
 
 	if err = s.AddSubscriberToList(l2.ID, s2.ID); err != nil {
-		t.Fatal("Could not add subscriber to list: %v\n", err)
+		t.Fatalf("Could not add subscriber to list: %v\n", err)
 	}
 	defer s.RemoveSubscriberFromList(l2.ID, s2.ID)
 
@@ -426,4 +430,49 @@ func TestMultipleAccounts(t *testing.T) {
 	if err = s.AddSubscriberToList(l2.ID, s1.ID); err == nil {
 		t.Fatal("Expected error when adding subscriber to list with different account")
 	}
+}
+
+func TestDuplicateAccountEmail(t *testing.T) {
+	var (
+		s   *maillist.Session
+		err error
+	)
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
+
+	if s, err = maillist.OpenSession(&config); err != nil {
+		t.Fatalf("Could not open session: %v", err)
+	}
+	defer s.Close()
+
+	a1 := maillist.Account{
+		FirstName: "Test",
+		LastName:  "Duplicate account email 1",
+		Email:     "testduplicateaccountemail@example.com",
+	}
+	a2 := maillist.Account{
+		FirstName: "Test",
+		LastName:  "Duplicate account email 2",
+		Email:     "testduplicateaccountemail@example.com",
+	}
+
+	if err := s.InsertAccount(&a1); err != nil {
+		log.Fatalf("Could not insert account: %v", err)
+	}
+	if err := s.InsertAccount(&a2); err == nil {
+		log.Fatalf("Expected error: duplicate email addresses")
+	}
+	s.DeleteAccount(a1.ID)
+
+	if err := s.InsertAccount(&a2); err != nil {
+		log.Fatalf("Could not insert account: %v", err)
+	}
+	defer s.DeleteAccount(a2.ID)
 }

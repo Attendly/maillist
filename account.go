@@ -3,6 +3,7 @@ package maillist
 import (
 	"database/sql"
 	"fmt"
+	"log"
 )
 
 // Account is equivalent to a user. All lists, messages, and subscribers must
@@ -26,25 +27,8 @@ func (s *Session) InsertAccount(a *Account) error {
 	return s.insert(a)
 }
 
-// UpsertAccount updates an account if the associated email address already
-// exists. Otherwise it inserts a new account
-func (s *Session) UpsertAccount(a *Account) error {
-	existing, err := s.GetAccountByEmail(a.Email)
-	if err != nil {
-		return err
-	}
-
-	if existing == nil {
-		return s.InsertAccount(a)
-	}
-
-	a.ID = existing.ID
-	a.Status = "active"
-	a.CreateTime = existing.CreateTime
-	return s.UpdateAccount(a)
-}
-
-// GetAccount retrieves an account with a given ID
+// GetAccount retrieves an account with a given ID. Returns nil,nil if that ID
+// does not exist (or has been deleted)
 func (s *Session) GetAccount(accountID int64) (*Account, error) {
 	var a Account
 	query := fmt.Sprintf("select %s from account where status!='deleted' and id=?", s.selectString(&a))
@@ -55,7 +39,8 @@ func (s *Session) GetAccount(accountID int64) (*Account, error) {
 	return &a, err
 }
 
-// GetAccount retrieves an account with a given ID
+// GetAccountByEmail retrieves an account with a given email address. Returns
+// nil,nil if that email address does not exist (or has been deleted)
 func (s *Session) GetAccountByEmail(email string) (*Account, error) {
 	var a Account
 	query := fmt.Sprintf("select %s from account where status!='deleted' and email=?",
@@ -77,5 +62,9 @@ func (s *Session) UpdateAccount(a *Account) error {
 
 // DeleteAccount removes an account
 func (s *Session) DeleteAccount(accountID int64) error {
-	return s.delete(Account{}, accountID)
+	err := s.delete(Account{}, accountID)
+	if err != nil {
+		log.Printf("Could not delete account %d: %v\n", accountID, err)
+	}
+	return err
 }
