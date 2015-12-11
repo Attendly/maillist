@@ -14,7 +14,7 @@ import (
 type Message struct {
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	CampaignID   int64  `db:"campaign_id" validate:"required"`
-	Status       string `db:"status" validate:"eq=pending|eq=sent"`
+	Status       string `db:"status" validate:"eq=pending|eq=sent|eq=failed|eq=cancelled"`
 	CreateTime   int64  `db:"create_time" validate:"required"`
 }
 

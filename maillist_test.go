@@ -20,14 +20,14 @@ func Example() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		JustPrint:       true,
 		Logger:          os.Stdout,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -107,15 +107,15 @@ func TestGetAttendeesCallback(t *testing.T) {
 	var buf bytes.Buffer
 
 	config := maillist.Config{
-		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress:      os.Getenv("MAILLIST_DATABASE"),
 		GetAttendeesCallback: getAttendees,
 		JustPrint:            true,
 		Logger:               &buf,
 		UnsubscribeURL:       "https://myeventarc.localhost/unsubscribe",
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -168,13 +168,13 @@ This is a test of attendly email list service
 
 func TestGetSpamReports(t *testing.T) {
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	s, err := maillist.OpenSession(&config)
@@ -205,13 +205,13 @@ func TestUnsubscribeToken(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -255,13 +255,13 @@ func TestUnsubscribeToken(t *testing.T) {
 
 func TestGetLists(t *testing.T) {
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	s, err := maillist.OpenSession(&config)
@@ -326,13 +326,13 @@ func TestMultipleAccounts(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -443,13 +443,13 @@ func TestDuplicateAccountEmail(t *testing.T) {
 		err error
 	)
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -490,13 +490,13 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -568,13 +568,13 @@ func TestAccounts(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {

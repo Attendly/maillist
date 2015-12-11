@@ -31,13 +31,10 @@ func (s *Session) InsertAccount(a *Account) error {
 func (s *Session) GetAccount(accountID int64) (*Account, error) {
 
 	selectSQL := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	account
+SELECT %s
+	FROM account
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND id=?`,
 		s.selectString(Account{}))
 
@@ -57,13 +54,10 @@ WHERE
 func (s *Session) GetAccountByEmail(email string) (*Account, error) {
 
 	selectSQL := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	account
+SELECT %s
+	FROM account
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND email=?`,
 		s.selectString(Account{}))
 

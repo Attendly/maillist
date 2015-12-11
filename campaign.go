@@ -47,6 +47,63 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 	return nil
 }
 
+func (s *Session) GetCampaignsInAccount(accountID int64) ([]*Campaign, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM campaign
+
+WHERE account_id=?`,
+		s.selectString(Campaign{}))
+
+	var cs []*Campaign
+	if _, err := s.dbmap.Select(&cs, selectSQL, accountID); err != nil {
+		return nil, err
+	}
+
+	return cs, nil
+}
+
+func (s *Session) CancelCampaign(campaignID int64) error {
+	campaignSQL := `
+UPDATE campaign
+	SET status='cancelled'
+
+WHERE id=?`
+
+	if _, err := s.dbmap.Exec(campaignSQL, campaignID); err != nil {
+		return err
+	}
+
+	messageSQL := `
+UPDATE message
+	SET status='cancelled'
+
+WHERE status='pending'
+	AND campaign_id=?`
+	if _, err := s.dbmap.Exec(messageSQL, campaignID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetCampaign retrieves a campaign with a given ID
+func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM campaign
+
+WHERE id=?
+	AND status!='deleted'`,
+		s.selectString(Campaign{}))
+
+	var c Campaign
+	err := s.dbmap.SelectOne(&c, selectSQL, campaignID)
+	return &c, err
+}
+
 // sendCampaign takes a scheduled campaign and adds it's messages to the queue
 // of pending messages
 func (s *Session) sendCampaign(campaignID int64) error {
@@ -152,15 +209,6 @@ LIMIT 1`,
 	}
 
 	return nil, err
-}
-
-// GetCampaign retrieves a campaign with a given ID
-func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
-	var c Campaign
-	sql := fmt.Sprintf("select %s from campaign where id=? and status!='deleted'",
-		s.selectString(&c))
-	err := s.dbmap.SelectOne(&c, sql, campaignID)
-	return &c, err
 }
 
 // UpdateCampaignStatus checks if all a campaigns messages have been sent, and

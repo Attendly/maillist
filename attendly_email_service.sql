@@ -31,7 +31,7 @@ CREATE TABLE `account` (
   `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `email` (`email`,`status`)
-) ENGINE=InnoDB AUTO_INCREMENT=118 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -84,7 +84,7 @@ CREATE TABLE `campaign` (
   PRIMARY KEY (`id`),
   KEY `account_id` (`account_id`),
   CONSTRAINT `campaign_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=83 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=93 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -103,7 +103,7 @@ CREATE TABLE `list` (
   PRIMARY KEY (`id`),
   KEY `list_ibfk_1` (`account_id`),
   CONSTRAINT `list_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=183 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=218 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -134,7 +134,7 @@ DROP TABLE IF EXISTS `message`;
 CREATE TABLE `message` (
   `subscriber_id` bigint(20) NOT NULL,
   `campaign_id` bigint(20) NOT NULL,
-  `status` enum('pending','sent') NOT NULL,
+  `status` enum('pending','sent','cancelled','failed') DEFAULT NULL,
   `create_time` bigint(20) NOT NULL,
   PRIMARY KEY (`subscriber_id`,`campaign_id`),
   KEY `campaign_id` (`campaign_id`),
@@ -161,7 +161,7 @@ CREATE TABLE `subscriber` (
   PRIMARY KEY (`id`),
   KEY `account_id` (`account_id`),
   CONSTRAINT `subscriber_ibfk_1` FOREIGN KEY (`account_id`) REFERENCES `account` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=77 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=103 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -217,4 +217,4 @@ CREATE TABLE `variable` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2015-12-11 10:45:25
+-- Dump completed on 2015-12-11 14:10:22
