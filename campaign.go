@@ -187,7 +187,7 @@ UPDATE campaign
 
 WHERE id=?`
 
-	_, err = s.dbmap.Exec(updateSQL, campaignID)
+	_, err := s.dbmap.Exec(updateSQL, campaignID)
 	return err
 }
 
