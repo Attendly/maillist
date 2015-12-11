@@ -51,8 +51,14 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 // of pending messages
 func (s *Session) sendCampaign(campaignID int64) error {
 
-	if r, err := s.dbmap.Exec("update campaign set status='pending' where status='scheduled' and id=?",
-		campaignID); err != nil {
+	updateSQL := `
+UPDATE campaign
+	SET status='pending'
+
+WHERE status='scheduled'
+	AND id=?`
+
+	if r, err := s.dbmap.Exec(updateSQL, campaignID); err != nil {
 		return err
 	} else if r2, err := r.RowsAffected(); r2 != 1 {
 		return err
@@ -126,11 +132,17 @@ func (s *Session) sendCampaign(campaignID int64) error {
 // nil,nil if none are due
 func getDueCampaign(s *Session) (*Campaign, error) {
 	var c Campaign
-	query := fmt.Sprintf(
-		`select %s from campaign where status='scheduled' and scheduled<=? limit 1`,
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM campaign
+
+WHERE status='scheduled'
+	AND scheduled<=?
+
+LIMIT 1`,
 		s.selectString(&c))
 
-	err := s.dbmap.SelectOne(&c, query, time.Now().Unix())
+	err := s.dbmap.SelectOne(&c, selectSQL, time.Now().Unix())
 	if err == nil {
 		return &c, nil
 	}
@@ -154,16 +166,28 @@ func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
 // UpdateCampaignStatus checks if all a campaigns messages have been sent, and
 // updates status from `pending` to `sent`.
 func (s *Session) updateCampaignStatus(campaignID int64) error {
-	count, err := s.dbmap.SelectInt("select count(*) from message where status='pending' and campaign_id=?", campaignID)
-	if err != nil {
+
+	selectSQL := `
+SELECT count(*)
+	FROM message
+
+WHERE status='pending'
+	AND campaign_id=?`
+
+	if count, err := s.dbmap.SelectInt(selectSQL, campaignID); err != nil {
 		return err
-	}
-	if count > 0 {
+
+	} else if count > 0 {
 		return nil
 	}
 
-	_, err = s.dbmap.Exec("update campaign set status='sent' where id=?",
-		campaignID)
+	updateSQL := `
+UPDATE campaign
+	SET status='sent'
+
+WHERE id=?`
+
+	_, err = s.dbmap.Exec(updateSQL, campaignID)
 	return err
 }
 

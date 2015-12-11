@@ -33,7 +33,8 @@ func (s *Session) GetAccount(accountID int64) (*Account, error) {
 	selectSQL := fmt.Sprintf(`
 SELECT
 	%s
-FROM account
+FROM
+	account
 
 WHERE
 	status!='deleted'
