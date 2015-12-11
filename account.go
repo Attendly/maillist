@@ -3,7 +3,6 @@ package maillist
 import (
 	"database/sql"
 	"fmt"
-	"log"
 )
 
 // Account is equivalent to a user. All lists, messages, and subscribers must
@@ -30,26 +29,51 @@ func (s *Session) InsertAccount(a *Account) error {
 // GetAccount retrieves an account with a given ID. Returns nil,nil if that ID
 // does not exist (or has been deleted)
 func (s *Session) GetAccount(accountID int64) (*Account, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT
+	%s
+FROM account
+
+WHERE
+	status!='deleted'
+	AND id=?`,
+		s.selectString(Account{}))
+
 	var a Account
-	query := fmt.Sprintf("select %s from account where status!='deleted' and id=?", s.selectString(&a))
-	err := s.dbmap.SelectOne(&a, query, accountID)
-	if err == sql.ErrNoRows {
+	if err := s.dbmap.SelectOne(&a, selectSQL, accountID); err == sql.ErrNoRows {
 		return nil, nil
+
+	} else if err != nil {
+		return nil, err
 	}
-	return &a, err
+
+	return &a, nil
 }
 
 // GetAccountByEmail retrieves an account with a given email address. Returns
 // nil,nil if that email address does not exist (or has been deleted)
 func (s *Session) GetAccountByEmail(email string) (*Account, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT
+	%s
+FROM
+	account
+
+WHERE
+	status!='deleted'
+	AND email=?`,
+		s.selectString(Account{}))
+
 	var a Account
-	query := fmt.Sprintf("select %s from account where status!='deleted' and email=?",
-		s.selectString(&a))
-	err := s.dbmap.SelectOne(&a, query, email)
-	if err == sql.ErrNoRows {
+	if err := s.dbmap.SelectOne(&a, selectSQL, email); err == sql.ErrNoRows {
 		return nil, nil
+
+	} else if err != nil {
+		return nil, err
 	}
-	return &a, err
+	return &a, nil
 }
 
 // UpdateAccount updates an account (identified by it's ID)
@@ -62,9 +86,5 @@ func (s *Session) UpdateAccount(a *Account) error {
 
 // DeleteAccount removes an account
 func (s *Session) DeleteAccount(accountID int64) error {
-	err := s.delete(Account{}, accountID)
-	if err != nil {
-		log.Printf("Could not delete account %d: %v\n", accountID, err)
-	}
-	return err
+	return s.delete(Account{}, accountID)
 }

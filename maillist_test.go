@@ -481,3 +481,152 @@ func TestDuplicateAccountEmail(t *testing.T) {
 	}
 	defer s.DeleteAccount(a2.ID)
 }
+
+func TestDuplicateSubscriberInList(t *testing.T) {
+
+	var (
+		err error
+		s   *maillist.Session
+	)
+
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
+
+	if s, err = maillist.OpenSession(&config); err != nil {
+		t.Fatalf("Could not open session: %v", err)
+	}
+	defer s.Close()
+
+	a1 := maillist.Account{
+		FirstName: "Test",
+		LastName:  "DuplicateSubscriberInList",
+		Email:     "testduplicatesubscriberinlist@example.com",
+	}
+	if err := s.InsertAccount(&a1); err != nil {
+		t.Fatalf("Could not insert account: %v\n", err)
+	}
+	defer s.DeleteAccount(a1.ID)
+
+	l1 := maillist.List{
+		AccountID: a1.ID,
+		Name:      "testduplicatesubscriberinlist",
+	}
+
+	if err := s.InsertList(&l1); err != nil {
+		t.Fatalf("Could not insert list: %v\n", err)
+	}
+	defer s.DeleteList(l1.ID)
+
+	s1 := maillist.Subscriber{
+		AccountID: a1.ID,
+		FirstName: "Test",
+		LastName:  "DuplicateSubscriberInList",
+		Email:     "testduplicatesubscriberinlist@example.com",
+	}
+
+	if err = s.InsertSubscriber(&s1); err != nil {
+		t.Fatalf("Could not insert subscriber: %v\n", err)
+	}
+
+	if err = s.InsertSubscriber(&s1); err == nil {
+		t.Errorf("Should have gotten an error for inserting duplicate subscriber")
+	}
+
+	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
+		t.Errorf("Could not add subscriber to list: %v\n", err)
+	}
+
+	if err = s.AddSubscriberToList(l1.ID, s1.ID); err == nil {
+		t.Error("Expected error: subscriber already in list")
+	}
+
+	if err = s.RemoveSubscriberFromList(l1.ID, s1.ID); err != nil {
+		t.Errorf("Could not remove subscriber from list: %v\n", err)
+	}
+
+	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
+		t.Errorf("Could not add subscriber to list: %v\n", err)
+	}
+
+	if err = s.DeleteSubscriber(s1.ID); err != nil {
+		t.Fatal("Could not delete subscriber: %v\n", err)
+	}
+}
+
+func TestAccounts(t *testing.T) {
+
+	var (
+		err error
+		s   *maillist.Session
+	)
+
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+		JustPrint:       true,
+
+		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
+		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+	}
+
+	if s, err = maillist.OpenSession(&config); err != nil {
+		t.Fatalf("Could not open session: %v", err)
+	}
+	defer s.Close()
+
+	a := maillist.Account{
+		FirstName: "Test",
+		LastName:  "Accounts",
+		Email:     "testaccounts@example.com",
+	}
+	if err = s.InsertAccount(&a); err != nil {
+		t.Fatalf("Could not insert account: %v\n", err)
+	}
+	if err = s.InsertAccount(&a); err == nil {
+		t.Error("Expected error when inserting duplicate account email\n")
+	}
+
+	if a2, err := s.GetAccountByEmail("testaccounts@example.com"); err != nil || a2 == nil || a2.ID != a.ID {
+		t.Errorf("Could not retrieve account: %v\n", err)
+	}
+
+	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != nil || a2 != nil {
+		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	}
+
+	if a2, err := s.GetAccount(a.ID); err != nil || a2 == nil {
+		t.Errorf("Could not retrieve account: %v\n", err)
+	}
+
+	if a2, err := s.GetAccount(0x777d6afae21b698b); err != nil || a2 != nil {
+		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	}
+
+	if err = s.DeleteAccount(a.ID); err != nil {
+		t.Fatalf("Could not delete account: %v\n", err)
+	}
+
+	if a2, err := s.GetAccount(a.ID); err != nil || a2 != nil {
+		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	}
+
+	if a2, err := s.GetAccountByEmail(a.Email); err != nil || a2 != nil {
+		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	}
+
+	if err = s.InsertAccount(&a); err != nil {
+		t.Fatalf("Could not insert account: %v\n", err)
+	}
+
+	if err = s.DeleteAccount(a.ID); err != nil {
+		t.Fatalf("Could not delete account: %v\n", err)
+	}
+}

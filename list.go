@@ -1,6 +1,9 @@
 package maillist
 
-import "fmt"
+import (
+	"database/sql"
+	"fmt"
+)
 
 // List represents a user defined mailing list, these are seperate from
 // event-associated lists
@@ -14,20 +17,27 @@ type List struct {
 
 // ListSubscriber represents a joining table for list and subscribers
 type ListSubscriber struct {
-	ListID       int64  `db:"list_id" validate:"required"`
-	SubscriberID int64  `db:"subscriber_id" validate:"required"`
-	Status       string `db:"status" validate:"eq=active|eq=deleted"`
-	CreateTime   int64  `db:"create_time" validate:"required"`
+	ListID       int64 `db:"list_id" validate:"required"`
+	SubscriberID int64 `db:"subscriber_id" validate:"required"`
+	CreateTime   int64 `db:"create_time" validate:"required"`
 }
 
 // GetLists retrieves all the mailing lists associated with an account.
 func (s *Session) GetLists(accountID int64) ([]*List, error) {
-	var ls []*List
-	sql := fmt.Sprintf("select %s from list where status!='deleted' and account_id=?",
+
+	query := fmt.Sprintf(`
+SELECT
+	%s
+FROM
+	list
+
+WHERE
+	status!='deleted'
+	AND account_id=?`,
 		s.selectString(&List{}))
 
-	_, err := s.dbmap.Select(&ls, sql, accountID)
-	if err != nil {
+	var ls []*List
+	if _, err := s.dbmap.Select(&ls, query, accountID); err != nil {
 		return nil, err
 	}
 
@@ -44,10 +54,26 @@ func (s *Session) InsertList(l *List) error {
 
 // GetList retrieves a mailing list with a given ID
 func (s *Session) GetList(listID int64) (*List, error) {
+
+	query := fmt.Sprintf(`
+SELECT
+	%s
+FROM
+	list
+
+WHERE
+	status!='deleted'
+	AND id=?`,
+		s.selectString(List{}))
+
 	var l List
-	sql := fmt.Sprintf("select %s from list where id=? and status!='deleted'", s.selectString(&l))
-	err := s.dbmap.SelectOne(&l, sql, listID)
-	return &l, err
+	if err := s.dbmap.SelectOne(&l, query, listID); err == sql.ErrNoRows {
+		return nil, nil
+
+	} else if err != nil {
+		return nil, err
+	}
+	return &l, nil
 }
 
 // UpdateList updates a mailing list in the database, identified by it's ID
@@ -65,8 +91,17 @@ func (s *Session) DeleteList(listID int64) error {
 // added to the list_subscriber joining table
 func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 
-	listAccountID, err := s.dbmap.SelectInt("select account_id from list where status!='deleted' and id=?",
-		listID)
+	query := `
+SELECT
+	account_id
+FROM
+	list
+
+WHERE
+	status!='deleted'
+	AND id=?`
+
+	listAccountID, err := s.dbmap.SelectInt(query, listID)
 	if err != nil {
 		return err
 	}
@@ -75,9 +110,17 @@ func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 			listID)
 	}
 
-	subscriberAccountID, err := s.dbmap.SelectInt(
-		"select account_id from subscriber where status!='deleted' and id=?",
+	subscriberAccountID, err := s.dbmap.SelectInt(`
+SELECT
+	account_id
+FROM
+	subscriber
+
+WHERE
+	status!='deleted'
+	AND id=?`,
 		subscriberID)
+
 	if err != nil {
 		return err
 	}
@@ -93,7 +136,6 @@ func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 	ls := ListSubscriber{
 		ListID:       listID,
 		SubscriberID: subscriberID,
-		Status:       "active",
 	}
 
 	return s.insert(&ls)
@@ -102,8 +144,15 @@ func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 // RemoveSubscriberFromList removes a subscriber from a list. Note this is
 // distinct from unsubscribing which is done on an account basis
 func (s *Session) RemoveSubscriberFromList(listID, subscriberID int64) error {
-	_, err := s.dbmap.Exec(
-		"delete from list_subscriber where list_id=? and subscriber_id=?",
-		listID, subscriberID)
+
+	query := `
+DELETE FROM
+	list_subscriber
+
+WHERE
+	list_id=?
+	AND subscriber_id=?`
+
+	_, err := s.dbmap.Exec(query, listID, subscriberID)
 	return err
 }

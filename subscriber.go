@@ -28,8 +28,23 @@ type Subscriber struct {
 func (s *Session) GetSubscribers(listID int64) ([]*Subscriber, error) {
 	var subs []*Subscriber
 
-	sql := fmt.Sprintf("select %s from subscriber inner join list_subscriber on subscriber.id = subscriber_id where list_id=? and subscriber.status='active' and list_subscriber.status='active'", s.selectString(&Subscriber{}))
-	if _, err := s.dbmap.Select(&subs, sql, listID); err != nil {
+	selectSQL := fmt.Sprintf(`
+SELECT
+	%s
+FROM
+	subscriber
+
+INNER JOIN
+	list_subscriber
+ON
+	subscriber.id=subscriber_id
+
+WHERE
+	subscriber.status='active'
+	AND list_id=?`,
+		s.selectString(&Subscriber{}))
+
+	if _, err := s.dbmap.Select(&subs, selectSQL, listID); err != nil {
 		return nil, err
 	}
 	return subs, nil
@@ -51,10 +66,20 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 // GetSubscriberByEmail retrieves a subscriber with a given email address.
 // Returns nil,nil if no such subscriber exists
 func (s *Session) GetSubscriberByEmail(email string) (*Subscriber, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT
+	%s
+FROM
+	subscriber
+
+WHERE
+	status!='deleted'
+	AND email=?`,
+		s.selectString(Subscriber{}))
+
 	var sub Subscriber
-	query := fmt.Sprintf("select %s from subscriber where email=? and status!='deleted'",
-		s.selectString(&sub))
-	err := s.dbmap.SelectOne(&sub, query, email)
+	err := s.dbmap.SelectOne(&sub, selectSQL, email)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -106,14 +131,36 @@ func (s *Session) DeleteSubscriber(id int64) error {
 // Unsubscribe marks a subscriber as not wanting to recieve any more marketting
 // emails
 func (s *Session) Unsubscribe(sub *Subscriber) error {
-	_, err := s.dbmap.Exec("update subscriber set status='unsubscribed' where id=?", sub.ID)
+
+	updateSQL := `
+UPDATE
+	subscriber
+
+SET
+	status='unsubscribed'
+
+WHERE
+	id=?`
+
+	_, err := s.dbmap.Exec(updateSQL, sub.ID)
+
 	return err
 }
 
 // getUnsubscribeSalt gets a random string unique to this installation to salt
 // unsubscribe tokens with as part of the hashing process.
 func getUnsubscribeSalt(s *Session) (string, error) {
-	salt, err := s.dbmap.SelectStr("select value from variable where name='unsubscribe-salt'")
+
+	selectSQL := `
+SELECT
+	value
+FROM
+	variable
+
+WHERE
+	name='unsubscribe-salt'`
+
+	salt, err := s.dbmap.SelectStr(selectSQL)
 	if err != nil {
 		return "", err
 	}
@@ -127,7 +174,15 @@ func getUnsubscribeSalt(s *Session) (string, error) {
 	}
 	salt = base64.StdEncoding.EncodeToString(buf[:])
 
-	_, err = s.dbmap.Exec("insert into variable (name, value) values ('unsubscribe-salt', ?)", salt)
+	insertSQL := `
+INSERT INTO
+	variable
+	(name, value)
+
+VALUES
+	('unsubscribe-salt', ?)`
+
+	_, err = s.dbmap.Exec(insertSQL, salt)
 	if err != nil {
 		return "", err
 	}
