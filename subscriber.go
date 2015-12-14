@@ -214,7 +214,7 @@ func (s *Session) GetSubscriberByToken(token string) (*Subscriber, error) {
 
 	id, err := strconv.ParseInt(ss[0], 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("Unsubscribe token could not be parsed: %v", err)
+		return nil, fmt.Errorf("unsubscribe token could not be parsed: %v", err)
 	}
 
 	sub, err := s.GetSubscriber(id)

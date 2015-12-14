@@ -34,7 +34,7 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 	c.EventIDs = intsToString(eventIDs)
 
 	// if l.AccountID != c.AccountID {
-	// return fmt.Errorf("List account ID doesn't match accountID")
+	// return fmt.Errorf("list account ID doesn't match accountID")
 	// }
 
 	c.Status = "scheduled"

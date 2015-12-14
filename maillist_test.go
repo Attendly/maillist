@@ -536,27 +536,27 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 	}
 
 	if err = s.InsertSubscriber(&s1); err == nil {
-		t.Errorf("Should have gotten an error for inserting duplicate subscriber")
+		t.Errorf("should have gotten an error for inserting duplicate subscriber")
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not add subscriber to list: %v\n", err)
+		t.Errorf("could not add subscriber to list: %v\n", err)
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err == nil {
-		t.Error("Expected error: subscriber already in list")
+		t.Error("expected error: subscriber already in list")
 	}
 
 	if err = s.RemoveSubscriberFromList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not remove subscriber from list: %v\n", err)
+		t.Errorf("could not remove subscriber from list: %v\n", err)
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not add subscriber to list: %v\n", err)
+		t.Errorf("could not add subscriber to list: %v\n", err)
 	}
 
 	if err = s.DeleteSubscriber(s1.ID); err != nil {
-		t.Fatal("Could not delete subscriber: %v\n", err)
+		t.Fatalf("Could not delete subscriber: %v\n", err)
 	}
 }
 
@@ -591,23 +591,23 @@ func TestAccounts(t *testing.T) {
 		t.Fatalf("Could not insert account: %v\n", err)
 	}
 	if err = s.InsertAccount(&a); err == nil {
-		t.Error("Expected error when inserting duplicate account email\n")
+		t.Error("expected error when inserting duplicate account email\n")
 	}
 
 	if a2, err := s.GetAccountByEmail("testaccounts@example.com"); err != nil || a2 == nil || a2.ID != a.ID {
-		t.Errorf("Could not retrieve account: %v\n", err)
+		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
 	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
 	}
 
 	if a2, err := s.GetAccount(a.ID); err != nil || a2 == nil {
-		t.Errorf("Could not retrieve account: %v\n", err)
+		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
 	if a2, err := s.GetAccount(0x777d6afae21b698b); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
 	}
 
 	if err = s.DeleteAccount(a.ID); err != nil {
@@ -615,11 +615,11 @@ func TestAccounts(t *testing.T) {
 	}
 
 	if a2, err := s.GetAccount(a.ID); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
 	}
 
 	if a2, err := s.GetAccountByEmail(a.Email); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
 	}
 
 	if err = s.InsertAccount(&a); err != nil {

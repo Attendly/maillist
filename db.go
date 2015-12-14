@@ -35,7 +35,7 @@ func (err *ErrNotFound) Error() string {
 
 func openDatabase(address string) (d database, err error) {
 	if address == "" {
-		return d, errors.New("Database address not set")
+		return d, errors.New("database address not set")
 	}
 	d.db, err = sql.Open("mysql", address+"?charset=utf8&parseTime=True")
 	if err != nil {
@@ -69,7 +69,7 @@ func (d *database) delete(i interface{}, id int64) error {
 	t := reflect.TypeOf(i)
 	table, ok := d.tables[t]
 	if !ok {
-		return fmt.Errorf("Type %s not registered in db", t)
+		return fmt.Errorf("type %s not registered in db", t)
 	}
 
 	sql := fmt.Sprintf("update %s set status='deleted' where id=?", table.name)
@@ -112,7 +112,7 @@ func (d *database) selectString(i interface{}) string {
 	}
 	table, ok := d.tables[t]
 	if !ok {
-		log.Fatalf("Type %s not registered in db", t)
+		log.Fatalf("type %s not registered in db", t)
 	}
 	return table.selectStr
 }

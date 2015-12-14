@@ -97,7 +97,7 @@ WHERE status!='deleted'
 		return err
 	}
 	if listAccountID == 0 {
-		return fmt.Errorf("Could not find associated account of list id:%d",
+		return fmt.Errorf("could not find associated account of list id:%d",
 			listID)
 	}
 
@@ -113,12 +113,12 @@ WHERE status!='deleted'
 		return err
 	}
 	if subscriberAccountID == 0 {
-		return fmt.Errorf("Could not find associated account of subscriber id:%d",
+		return fmt.Errorf("could not find associated account of subscriber id:%d",
 			subscriberID)
 	}
 
 	if listAccountID != subscriberAccountID {
-		return fmt.Errorf("List and subscriber must be in the same account")
+		return fmt.Errorf("list and subscriber must be in the same account")
 	}
 
 	ls := ListSubscriber{

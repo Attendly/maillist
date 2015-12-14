@@ -78,17 +78,17 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 
 	sub, err := s.GetSubscriber(m.SubscriberID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get subscriber: %v", err)
+		return nil, fmt.Errorf("couldn't get subscriber: %v", err)
 	}
 
 	campaign, err := s.GetCampaign(m.CampaignID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get campaign %d: %v", m.CampaignID, err)
+		return nil, fmt.Errorf("couldn't get campaign %d: %v", m.CampaignID, err)
 	}
 
 	account, err := s.GetAccount(campaign.AccountID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get account: %v", err)
+		return nil, fmt.Errorf("couldn't get account: %v", err)
 	}
 
 	email.To = []string{sub.Email}
