@@ -30,12 +30,14 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 		return errors.New("Events and Mailing-lists should be passed in InsertCampaign's parameters, not as part of the structure")
 	}
 
+	if len(listIDs) == 0 && len(eventIDs) == 0 {
+		return fmt.Errorf(
+			"not scheduling campaign '%s' without attached mailing lists or events",
+			c.Subject)
+	}
+
 	c.ListIDs = intsToString(listIDs)
 	c.EventIDs = intsToString(eventIDs)
-
-	// if l.AccountID != c.AccountID {
-	// return fmt.Errorf("list account ID doesn't match accountID")
-	// }
 
 	c.Status = "scheduled"
 	err := s.insert(c)
@@ -100,8 +102,13 @@ WHERE id=?
 		s.selectString(Campaign{}))
 
 	var c Campaign
-	err := s.dbmap.SelectOne(&c, selectSQL, campaignID)
-	return &c, err
+	if err := s.dbmap.SelectOne(&c, selectSQL, campaignID); err == sql.ErrNoRows {
+		return nil, nil
+
+	} else if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 // sendCampaign takes a scheduled campaign and adds it's messages to the queue
@@ -139,7 +146,7 @@ WHERE status='scheduled'
 				continue
 			}
 
-			if sub2, err := s.GetSubscriberByEmail(sub.Email); err != nil {
+			if sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID); err != nil {
 				return err
 			} else if sub2 != nil {
 				subsToSend[sub.Email] = sub2

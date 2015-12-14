@@ -65,7 +65,7 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 
 // GetSubscriberByEmail retrieves a subscriber with a given email address.
 // Returns nil,nil if no such subscriber exists
-func (s *Session) GetSubscriberByEmail(email string) (*Subscriber, error) {
+func (s *Session) GetSubscriberByEmail(email string, accountID int64) (*Subscriber, error) {
 
 	selectSQL := fmt.Sprintf(`
 SELECT
@@ -75,11 +75,12 @@ FROM
 
 WHERE
 	status!='deleted'
-	AND email=?`,
+	AND email=?
+	AND account_id=?`,
 		s.selectString(Subscriber{}))
 
 	var sub Subscriber
-	err := s.dbmap.SelectOne(&sub, selectSQL, email)
+	err := s.dbmap.SelectOne(&sub, selectSQL, email, accountID)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
