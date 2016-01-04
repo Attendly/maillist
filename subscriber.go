@@ -221,6 +221,10 @@ func (s *Session) GetSubscriberByToken(token string) (*Subscriber, error) {
 	sub, err := s.GetSubscriber(id)
 	if err != nil {
 		return nil, err
+
+	} else if sub == nil {
+		err = fmt.Errorf("subscriber with ID '%d' not found", id)
+		return nil, err
 	}
 
 	wantedToken, err := s.UnsubscribeToken(sub)

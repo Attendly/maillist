@@ -36,6 +36,21 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 			c.Subject)
 	}
 
+	for _, id := range listIDs {
+		list, err := s.GetList(id)
+		if err != nil {
+			return err
+		}
+
+		if list == nil {
+			return fmt.Errorf("could not find list with ID '%d'", id)
+		}
+
+		if list.AccountID != c.AccountID {
+			return fmt.Errorf("campaign with account ID '%d' contains list '%d' with account ID '%d'", c.AccountID, list.ID, list.AccountID)
+		}
+	}
+
 	c.ListIDs = intsToString(listIDs)
 	c.EventIDs = intsToString(eventIDs)
 
