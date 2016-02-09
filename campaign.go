@@ -165,24 +165,26 @@ WHERE status='scheduled'
 				continue
 			}
 
-			if sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID); err != nil {
-				return err
-			} else if sub2 != nil {
-				subsToSend[sub.Email] = sub2
+			sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID)
+			if err == ErrNotFound {
+				if err := s.InsertSubscriber(sub); err != nil {
+					return err
+				}
+				subsToSend[sub.Email] = sub
 				continue
+
+			} else if err != nil {
+				return err
 			}
 
-			if err := s.InsertSubscriber(sub); err != nil {
-				return err
-			}
-			subsToSend[sub.Email] = sub
+			subsToSend[sub.Email] = sub2
 		}
 	}
 
 	// Add all the subscribers in the campaign lists to subsToSend
 	for _, listID := range listIDs {
 		subs, err := s.GetSubscribers(listID)
-		if err != nil {
+		if err != nil && err != ErrNotFound {
 			return err
 		}
 		for _, sub := range subs {

@@ -14,8 +14,6 @@ import (
 // Example session of sending a single test email. Configuration here is read
 // from the environment.
 func Example() {
-	var err error
-	var s *maillist.Session
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
@@ -29,7 +27,7 @@ func Example() {
 		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
-	s, _ = maillist.OpenSession(&config)
+	s, _ := maillist.OpenSession(&config)
 	defer s.Close()
 
 	a := maillist.Account{
@@ -70,7 +68,7 @@ func Example() {
 
 	// Output:
 	// Email to send
-	// To: tom@attendly.com (Tommy Barker)
+	// To: tom@example.com (Tommy Barker)
 	// From: sendgrid@example.com (Joe Bloggs)
 	// Subject: Awesome Event 2016
 	// Body: Hi Tommy Barker,
@@ -115,7 +113,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 	a := maillist.Account{
 		FirstName: "Spamface",
 		LastName:  "The Bold",
-		Email:     "example@example.com",
+		Email:     "spamface@example.com",
 	}
 	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -145,7 +143,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 	out := buf.String()
 	want := `Email to send
 To: fred@example.com (Freddy Example)
-From: example@example.com (Spamface The Bold)
+From: spamface@example.com (Spamface The Bold)
 Subject: Awesome Event 2016
 Body: Hi Freddy Example,
 This is a test of attendly email list service
@@ -586,28 +584,28 @@ func TestAccounts(t *testing.T) {
 		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != nil || a2 != nil {
-		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if a2, err := s.GetAccount(a.ID); err != nil || a2 == nil {
 		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccount(0x777d6afae21b698b); err != nil || a2 != nil {
-		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccount(0x777d6afae21b698b); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if err = s.DeleteAccount(a.ID); err != nil {
 		t.Fatalf("Could not delete account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccount(a.ID); err != nil || a2 != nil {
-		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccount(a.ID); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
-	if a2, err := s.GetAccountByEmail(a.Email); err != nil || a2 != nil {
-		t.Errorf("got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccountByEmail(a.Email); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if err = s.InsertAccount(&a); err != nil {
