@@ -40,7 +40,7 @@ WHERE status!='deleted'
 
 	var a Account
 	if err := s.dbmap.SelectOne(&a, selectSQL, accountID); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err
@@ -63,7 +63,7 @@ WHERE status!='deleted'
 
 	var a Account
 	if err := s.dbmap.SelectOne(&a, selectSQL, email); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err

@@ -30,14 +30,14 @@ func pendingMessage(s *Session) (*Message, error) {
 	query := fmt.Sprintf("select %s from message where status='pending' limit 1",
 		s.selectString(&m))
 	err := s.dbmap.SelectOne(&m, query)
-	if err == nil {
-		return &m, nil
-	}
 
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
-	return nil, err
+	return &m, nil
 }
 
 // sendMessage sends a single message to it's destination
@@ -51,6 +51,7 @@ func (s *Session) sendMessage(m *Message) error {
 
 	if spam, err := s.HasReportedSpam(email.To[0]); err != nil {
 		return err
+
 	} else if spam {
 		return nil
 	}

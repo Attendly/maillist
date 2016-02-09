@@ -11,9 +11,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Example session of sending a single test email. DatabaseAddress,
-// SendGridAPIKey would have to be set appropriately. JustPrint should be
-// false, and Subscriber.Email changed to send a real message.
+// Example session of sending a single test email. Configuration here is read
+// from the environment.
 func Example() {
 	var err error
 	var s *maillist.Session
@@ -30,9 +29,7 @@ func Example() {
 		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
-	if s, err = maillist.OpenSession(&config); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s, _ = maillist.OpenSession(&config)
 	defer s.Close()
 
 	a := maillist.Account{
@@ -40,33 +37,27 @@ func Example() {
 		LastName:  "Bloggs",
 		Email:     "sendgrid@example.com",
 	}
-	if err := s.InsertAccount(&a); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+
+	s.InsertAccount(&a)
 	defer s.DeleteAccount(a.ID)
 
 	l := maillist.List{
 		AccountID: a.ID,
 		Name:      "My Awesome Mailing List",
 	}
-	if err = s.InsertList(&l); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.InsertList(&l)
 
 	sub := maillist.Subscriber{
 		AccountID: a.ID,
 		FirstName: "Tommy",
 		LastName:  "Barker",
-		Email:     "tom@attendly.com",
+		Email:     "tom@example.com",
 	}
-	if err = s.InsertSubscriber(&sub); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+
+	s.InsertSubscriber(&sub)
 	defer s.DeleteSubscriber(sub.ID)
 
-	if err = s.AddSubscriberToList(l.ID, sub.ID); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.AddSubscriberToList(l.ID, sub.ID)
 
 	c := maillist.Campaign{
 		AccountID: a.ID,
@@ -74,9 +65,7 @@ func Example() {
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
 		Scheduled: time.Now().Unix(),
 	}
-	if err = s.InsertCampaign(&c, []int64{l.ID}, nil); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.InsertCampaign(&c, []int64{l.ID}, nil)
 	time.Sleep(5 * time.Second)
 
 	// Output:
@@ -561,7 +550,6 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 }
 
 func TestAccounts(t *testing.T) {
-
 	var (
 		err error
 		s   *maillist.Session

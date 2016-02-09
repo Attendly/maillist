@@ -76,6 +76,9 @@ WHERE account_id=?`,
 	var cs []*Campaign
 	if _, err := s.dbmap.Select(&cs, selectSQL, accountID); err != nil {
 		return nil, err
+
+	} else if len(cs) == 0 {
+		return nil, ErrNotFound
 	}
 
 	return cs, nil
@@ -118,7 +121,7 @@ WHERE id=?
 
 	var c Campaign
 	if err := s.dbmap.SelectOne(&c, selectSQL, campaignID); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err
@@ -139,6 +142,7 @@ WHERE status='scheduled'
 
 	if r, err := s.dbmap.Exec(updateSQL, campaignID); err != nil {
 		return err
+
 	} else if r2, err := r.RowsAffected(); r2 != 1 {
 		return err
 	}
@@ -222,15 +226,14 @@ LIMIT 1`,
 		s.selectString(&c))
 
 	err := s.dbmap.SelectOne(&c, selectSQL, time.Now().Unix())
-	if err == nil {
-		return &c, nil
-	}
-
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
 
-	return nil, err
+	return &c, nil
 }
 
 // UpdateCampaignStatus checks if all a campaigns messages have been sent, and

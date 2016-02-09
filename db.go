@@ -24,12 +24,14 @@ type database struct {
 	tables map[reflect.Type]table
 }
 
+type errNotFound struct{}
+
 // ErrNotFound returned when an entity is not present in the database
-type ErrNotFound struct{}
+var ErrNotFound = &errNotFound{}
 
 var validate *validator.Validate
 
-func (err *ErrNotFound) Error() string {
+func (err *errNotFound) Error() string {
 	return "Not found"
 }
 

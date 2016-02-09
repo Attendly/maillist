@@ -46,6 +46,9 @@ WHERE
 
 	if _, err := s.dbmap.Select(&subs, selectSQL, listID); err != nil {
 		return nil, err
+
+	} else if len(subs) == 0 {
+		return nil, ErrNotFound
 	}
 	return subs, nil
 }
@@ -56,11 +59,15 @@ func (s *Session) GetSubscriber(subscriberID int64) (*Subscriber, error) {
 	var sub Subscriber
 	query := fmt.Sprintf("select %s from subscriber where id=? and status!='deleted'",
 		s.selectString(&sub))
+
 	err := s.dbmap.SelectOne(&sub, query, subscriberID)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
-	return &sub, err
+	return &sub, nil
 }
 
 // GetSubscriberByEmail retrieves a subscriber with a given email address.
@@ -81,10 +88,14 @@ WHERE
 
 	var sub Subscriber
 	err := s.dbmap.SelectOne(&sub, selectSQL, email, accountID)
+
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
-	return &sub, err
+	return &sub, nil
 }
 
 func (s *Session) InsertSubscriber(sub *Subscriber) error {
@@ -97,37 +108,6 @@ func (s *Session) InsertSubscriber(sub *Subscriber) error {
 func (s *Session) DeleteSubscriber(id int64) error {
 	return s.delete(Subscriber{}, id)
 }
-
-// // GetOrInsertSubscriber retrieves a subscriber from the database if it cannot
-// // be found. Otherwise adds a new entry. This is mostly used to prevent
-// // duplicate subscribers.
-// func (s *Session) GetOrInsertSubscriber(sub *Subscriber) error {
-// if sub.ID != 0 {
-// return errors.New("ID should not be set for GetOrInsertSubscriber")
-// }
-
-// if accountStatus, err := s.dbmap.SelectStr(
-// "select account.status from account where id=?",
-// sub.AccountID); err != nil {
-// return err
-// } else if accountStatus == "" {
-// return fmt.Errorf("could not find account id=%d",
-// sub.AccountID)
-// } else if accountStatus == "deleted" {
-// return fmt.Errorf("adding subscriber to deleted account id=%d",
-// sub.AccountID)
-// }
-
-// query := fmt.Sprintf("select %s from subscriber where account_id=? and email=?", s.selectString(sub))
-// err := s.dbmap.SelectOne(&sub, query, sub.AccountID, sub.Email)
-// if err != sql.ErrNoRows {
-// return err
-// }
-// if sub.Status == "" {
-// sub.Status = "active"
-// }
-// return s.insert(sub)
-// }
 
 // Unsubscribe marks a subscriber as not wanting to recieve any more marketting
 // emails

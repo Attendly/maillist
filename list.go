@@ -36,6 +36,9 @@ WHERE status!='deleted'
 	var ls []*List
 	if _, err := s.dbmap.Select(&ls, selectSQL, accountID); err != nil {
 		return nil, err
+
+	} else if len(ls) == 0 {
+		return nil, ErrNotFound
 	}
 
 	return ls, nil
@@ -62,7 +65,7 @@ WHERE status!='deleted'
 
 	var l List
 	if err := s.dbmap.SelectOne(&l, query, listID); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err
