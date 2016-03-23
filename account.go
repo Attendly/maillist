@@ -8,12 +8,13 @@ import (
 // Account is equivalent to a user. All lists, messages, and subscribers must
 // have an associated account
 type Account struct {
-	ID         int64  `db:"id"`
-	FirstName  string `db:"first_name" validate:"required"`
-	LastName   string `db:"last_name" validate:"required"`
-	Email      string `db:"email" validate:"required"`
-	Status     string `db:"status" validate:"eq=active|eq=deleted"`
-	CreateTime int64  `db:"create_time" validate:"required"`
+	ID            int64  `db:"id"`
+	ApplicationID int64  `db:"application_id" validate:"required"`
+	FirstName     string `db:"first_name" validate:"required"`
+	LastName      string `db:"last_name" validate:"required"`
+	Email         string `db:"email" validate:"required"`
+	Status        string `db:"status" validate:"eq=active|eq=deleted"`
+	CreateTime    int64  `db:"create_time" validate:"required"`
 }
 
 // InsertAccount adds the database to the account. The ID field will be
@@ -46,6 +47,28 @@ WHERE status!='deleted'
 		return nil, err
 	}
 
+	return &a, nil
+}
+
+// GetAccountByApplicationID retrieves an account with a given application ID.
+// Returns nil,nil if that ID does not exist (or has been deleted)
+func (s *Session) GetAccountByApplicationID(applicationID int64) (*Account, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM account
+
+WHERE status!='deleted'
+	AND application_id=?`,
+		s.selectString(Account{}))
+
+	var a Account
+	if err := s.dbmap.SelectOne(&a, selectSQL, applicationID); err == sql.ErrNoRows {
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
+	}
 	return &a, nil
 }
 
