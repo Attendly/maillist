@@ -12,6 +12,7 @@ import (
 	"gopkg.in/go-playground/validator.v8"
 
 	"github.com/go-gorp/gorp"
+	_ "github.com/go-sql-driver/mysql" // Overloading mysql for gorp
 )
 
 type table struct {
