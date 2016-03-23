@@ -31,19 +31,16 @@ func (s *Session) InsertAccount(a *Account) error {
 func (s *Session) GetAccount(accountID int64) (*Account, error) {
 
 	selectSQL := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	account
+SELECT %s
+	FROM account
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND id=?`,
 		s.selectString(Account{}))
 
 	var a Account
 	if err := s.dbmap.SelectOne(&a, selectSQL, accountID); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err
@@ -57,19 +54,16 @@ WHERE
 func (s *Session) GetAccountByEmail(email string) (*Account, error) {
 
 	selectSQL := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	account
+SELECT %s
+	FROM account
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND email=?`,
 		s.selectString(Account{}))
 
 	var a Account
 	if err := s.dbmap.SelectOne(&a, selectSQL, email); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err

@@ -30,12 +30,29 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 		return errors.New("Events and Mailing-lists should be passed in InsertCampaign's parameters, not as part of the structure")
 	}
 
+	if len(listIDs) == 0 && len(eventIDs) == 0 {
+		return fmt.Errorf(
+			"not scheduling campaign '%s' without attached mailing lists or events",
+			c.Subject)
+	}
+
+	for _, id := range listIDs {
+		list, err := s.GetList(id)
+		if err != nil {
+			return err
+		}
+
+		if list == nil {
+			return fmt.Errorf("could not find list with ID '%d'", id)
+		}
+
+		if list.AccountID != c.AccountID {
+			return fmt.Errorf("campaign with account ID '%d' contains list '%d' with account ID '%d'", c.AccountID, list.ID, list.AccountID)
+		}
+	}
+
 	c.ListIDs = intsToString(listIDs)
 	c.EventIDs = intsToString(eventIDs)
-
-	// if l.AccountID != c.AccountID {
-	// return fmt.Errorf("List account ID doesn't match accountID")
-	// }
 
 	c.Status = "scheduled"
 	err := s.insert(c)
@@ -45,6 +62,71 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 
 	s.wake <- true
 	return nil
+}
+
+func (s *Session) GetCampaignsInAccount(accountID int64) ([]*Campaign, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM campaign
+
+WHERE account_id=?`,
+		s.selectString(Campaign{}))
+
+	var cs []*Campaign
+	if _, err := s.dbmap.Select(&cs, selectSQL, accountID); err != nil {
+		return nil, err
+
+	} else if len(cs) == 0 {
+		return nil, ErrNotFound
+	}
+
+	return cs, nil
+}
+
+func (s *Session) CancelCampaign(campaignID int64) error {
+	campaignSQL := `
+UPDATE campaign
+	SET status='cancelled'
+
+WHERE id=?`
+
+	if _, err := s.dbmap.Exec(campaignSQL, campaignID); err != nil {
+		return err
+	}
+
+	messageSQL := `
+UPDATE message
+	SET status='cancelled'
+
+WHERE status='pending'
+	AND campaign_id=?`
+	if _, err := s.dbmap.Exec(messageSQL, campaignID); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetCampaign retrieves a campaign with a given ID
+func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
+
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM campaign
+
+WHERE id=?
+	AND status!='deleted'`,
+		s.selectString(Campaign{}))
+
+	var c Campaign
+	if err := s.dbmap.SelectOne(&c, selectSQL, campaignID); err == sql.ErrNoRows {
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
+	}
+	return &c, nil
 }
 
 // sendCampaign takes a scheduled campaign and adds it's messages to the queue
@@ -60,6 +142,7 @@ WHERE status='scheduled'
 
 	if r, err := s.dbmap.Exec(updateSQL, campaignID); err != nil {
 		return err
+
 	} else if r2, err := r.RowsAffected(); r2 != 1 {
 		return err
 	}
@@ -82,24 +165,26 @@ WHERE status='scheduled'
 				continue
 			}
 
-			if sub2, err := s.GetSubscriberByEmail(sub.Email); err != nil {
-				return err
-			} else if sub2 != nil {
-				subsToSend[sub.Email] = sub2
+			sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID)
+			if err == ErrNotFound {
+				if err := s.InsertSubscriber(sub); err != nil {
+					return err
+				}
+				subsToSend[sub.Email] = sub
 				continue
+
+			} else if err != nil {
+				return err
 			}
 
-			if err := s.InsertSubscriber(sub); err != nil {
-				return err
-			}
-			subsToSend[sub.Email] = sub
+			subsToSend[sub.Email] = sub2
 		}
 	}
 
 	// Add all the subscribers in the campaign lists to subsToSend
 	for _, listID := range listIDs {
 		subs, err := s.GetSubscribers(listID)
-		if err != nil {
+		if err != nil && err != ErrNotFound {
 			return err
 		}
 		for _, sub := range subs {
@@ -143,24 +228,14 @@ LIMIT 1`,
 		s.selectString(&c))
 
 	err := s.dbmap.SelectOne(&c, selectSQL, time.Now().Unix())
-	if err == nil {
-		return &c, nil
-	}
-
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
 
-	return nil, err
-}
-
-// GetCampaign retrieves a campaign with a given ID
-func (s *Session) GetCampaign(campaignID int64) (*Campaign, error) {
-	var c Campaign
-	sql := fmt.Sprintf("select %s from campaign where id=? and status!='deleted'",
-		s.selectString(&c))
-	err := s.dbmap.SelectOne(&c, sql, campaignID)
-	return &c, err
+	return &c, nil
 }
 
 // UpdateCampaignStatus checks if all a campaigns messages have been sent, and

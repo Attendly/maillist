@@ -25,20 +25,20 @@ type ListSubscriber struct {
 // GetLists retrieves all the mailing lists associated with an account.
 func (s *Session) GetLists(accountID int64) ([]*List, error) {
 
-	query := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	list
+	selectSQL := fmt.Sprintf(`
+SELECT %s
+	FROM list
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND account_id=?`,
 		s.selectString(&List{}))
 
 	var ls []*List
-	if _, err := s.dbmap.Select(&ls, query, accountID); err != nil {
+	if _, err := s.dbmap.Select(&ls, selectSQL, accountID); err != nil {
 		return nil, err
+
+	} else if len(ls) == 0 {
+		return nil, ErrNotFound
 	}
 
 	return ls, nil
@@ -56,19 +56,16 @@ func (s *Session) InsertList(l *List) error {
 func (s *Session) GetList(listID int64) (*List, error) {
 
 	query := fmt.Sprintf(`
-SELECT
-	%s
-FROM
-	list
+SELECT %s
+	FROM list
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND id=?`,
 		s.selectString(List{}))
 
 	var l List
 	if err := s.dbmap.SelectOne(&l, query, listID); err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
 
 	} else if err != nil {
 		return nil, err
@@ -92,13 +89,10 @@ func (s *Session) DeleteList(listID int64) error {
 func (s *Session) AddSubscriberToList(listID, subscriberID int64) error {
 
 	query := `
-SELECT
-	account_id
-FROM
-	list
+SELECT account_id
+	FROM list
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND id=?`
 
 	listAccountID, err := s.dbmap.SelectInt(query, listID)
@@ -106,18 +100,15 @@ WHERE
 		return err
 	}
 	if listAccountID == 0 {
-		return fmt.Errorf("Could not find associated account of list id:%d",
+		return fmt.Errorf("could not find associated account of list id:%d",
 			listID)
 	}
 
 	subscriberAccountID, err := s.dbmap.SelectInt(`
-SELECT
-	account_id
-FROM
-	subscriber
+SELECT account_id
+	FROM subscriber
 
-WHERE
-	status!='deleted'
+WHERE status!='deleted'
 	AND id=?`,
 		subscriberID)
 
@@ -125,12 +116,12 @@ WHERE
 		return err
 	}
 	if subscriberAccountID == 0 {
-		return fmt.Errorf("Could not find associated account of subscriber id:%d",
+		return fmt.Errorf("could not find associated account of subscriber id:%d",
 			subscriberID)
 	}
 
 	if listAccountID != subscriberAccountID {
-		return fmt.Errorf("List and subscriber must be in the same account")
+		return fmt.Errorf("list and subscriber must be in the same account")
 	}
 
 	ls := ListSubscriber{
@@ -146,11 +137,9 @@ WHERE
 func (s *Session) RemoveSubscriberFromList(listID, subscriberID int64) error {
 
 	query := `
-DELETE FROM
-	list_subscriber
+DELETE FROM list_subscriber
 
-WHERE
-	list_id=?
+WHERE list_id=?
 	AND subscriber_id=?`
 
 	_, err := s.dbmap.Exec(query, listID, subscriberID)

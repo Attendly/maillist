@@ -14,7 +14,7 @@ import (
 type Message struct {
 	SubscriberID int64  `db:"subscriber_id" validate:"required"`
 	CampaignID   int64  `db:"campaign_id" validate:"required"`
-	Status       string `db:"status" validate:"eq=pending|eq=sent"`
+	Status       string `db:"status" validate:"eq=pending|eq=sent|eq=failed|eq=cancelled"`
 	CreateTime   int64  `db:"create_time" validate:"required"`
 }
 
@@ -30,14 +30,14 @@ func pendingMessage(s *Session) (*Message, error) {
 	query := fmt.Sprintf("select %s from message where status='pending' limit 1",
 		s.selectString(&m))
 	err := s.dbmap.SelectOne(&m, query)
-	if err == nil {
-		return &m, nil
-	}
 
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, ErrNotFound
+
+	} else if err != nil {
+		return nil, err
 	}
-	return nil, err
+	return &m, nil
 }
 
 // sendMessage sends a single message to it's destination
@@ -51,12 +51,14 @@ func (s *Session) sendMessage(m *Message) error {
 
 	if spam, err := s.HasReportedSpam(email.To[0]); err != nil {
 		return err
+
 	} else if spam {
 		return nil
 	}
 
 	if s.config.JustPrint {
 		s.config.Logger.Write(printEmail(email))
+
 	} else if err := s.sgClient.Send(email); err != nil {
 		return err
 	}
@@ -78,17 +80,17 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 
 	sub, err := s.GetSubscriber(m.SubscriberID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get subscriber: %v", err)
+		return nil, fmt.Errorf("couldn't get subscriber: %v", err)
 	}
 
 	campaign, err := s.GetCampaign(m.CampaignID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get campaign %d: %v", m.CampaignID, err)
+		return nil, fmt.Errorf("couldn't get campaign %d: %v", m.CampaignID, err)
 	}
 
 	account, err := s.GetAccount(campaign.AccountID)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't get account: %v", err)
+		return nil, fmt.Errorf("couldn't get account: %v", err)
 	}
 
 	email.To = []string{sub.Email}

@@ -11,28 +11,23 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-// Example session of sending a single test email. DatabaseAddress,
-// SendGridAPIKey would have to be set appropriately. JustPrint should be
-// false, and Subscriber.Email changed to send a real message.
+// Example session of sending a single test email. Configuration here is read
+// from the environment.
 func Example() {
-	var err error
-	var s *maillist.Session
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		JustPrint:       true,
 		Logger:          os.Stdout,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
-	if s, err = maillist.OpenSession(&config); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s, _ := maillist.OpenSession(&config)
 	defer s.Close()
 
 	a := maillist.Account{
@@ -40,33 +35,27 @@ func Example() {
 		LastName:  "Bloggs",
 		Email:     "sendgrid@example.com",
 	}
-	if err := s.InsertAccount(&a); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+
+	s.InsertAccount(&a)
 	defer s.DeleteAccount(a.ID)
 
 	l := maillist.List{
 		AccountID: a.ID,
 		Name:      "My Awesome Mailing List",
 	}
-	if err = s.InsertList(&l); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.InsertList(&l)
 
 	sub := maillist.Subscriber{
 		AccountID: a.ID,
 		FirstName: "Tommy",
 		LastName:  "Barker",
-		Email:     "tom@attendly.com",
+		Email:     "tom@example.com",
 	}
-	if err = s.InsertSubscriber(&sub); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+
+	s.InsertSubscriber(&sub)
 	defer s.DeleteSubscriber(sub.ID)
 
-	if err = s.AddSubscriberToList(l.ID, sub.ID); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.AddSubscriberToList(l.ID, sub.ID)
 
 	c := maillist.Campaign{
 		AccountID: a.ID,
@@ -74,14 +63,12 @@ func Example() {
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
 		Scheduled: time.Now().Unix(),
 	}
-	if err = s.InsertCampaign(&c, []int64{l.ID}, nil); err != nil {
-		log.Fatalf("error: %v\n", err)
-	}
+	s.InsertCampaign(&c, []int64{l.ID}, nil)
 	time.Sleep(5 * time.Second)
 
 	// Output:
 	// Email to send
-	// To: tom@attendly.com (Tommy Barker)
+	// To: tom@example.com (Tommy Barker)
 	// From: sendgrid@example.com (Joe Bloggs)
 	// Subject: Awesome Event 2016
 	// Body: Hi Tommy Barker,
@@ -107,15 +94,15 @@ func TestGetAttendeesCallback(t *testing.T) {
 	var buf bytes.Buffer
 
 	config := maillist.Config{
-		DatabaseAddress:      os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress:      os.Getenv("MAILLIST_DATABASE"),
 		GetAttendeesCallback: getAttendees,
 		JustPrint:            true,
 		Logger:               &buf,
 		UnsubscribeURL:       "https://myeventarc.localhost/unsubscribe",
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -126,7 +113,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 	a := maillist.Account{
 		FirstName: "Spamface",
 		LastName:  "The Bold",
-		Email:     "example@example.com",
+		Email:     "spamface@example.com",
 	}
 	if err := s.InsertAccount(&a); err != nil {
 		log.Fatalf("error: %v\n", err)
@@ -156,7 +143,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 	out := buf.String()
 	want := `Email to send
 To: fred@example.com (Freddy Example)
-From: example@example.com (Spamface The Bold)
+From: spamface@example.com (Spamface The Bold)
 Subject: Awesome Event 2016
 Body: Hi Freddy Example,
 This is a test of attendly email list service
@@ -168,13 +155,13 @@ This is a test of attendly email list service
 
 func TestGetSpamReports(t *testing.T) {
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	s, err := maillist.OpenSession(&config)
@@ -205,13 +192,13 @@ func TestUnsubscribeToken(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -255,13 +242,13 @@ func TestUnsubscribeToken(t *testing.T) {
 
 func TestGetLists(t *testing.T) {
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	s, err := maillist.OpenSession(&config)
@@ -326,13 +313,13 @@ func TestMultipleAccounts(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -443,13 +430,13 @@ func TestDuplicateAccountEmail(t *testing.T) {
 		err error
 	)
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -490,13 +477,13 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -536,45 +523,44 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 	}
 
 	if err = s.InsertSubscriber(&s1); err == nil {
-		t.Errorf("Should have gotten an error for inserting duplicate subscriber")
+		t.Errorf("should have gotten an error for inserting duplicate subscriber")
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not add subscriber to list: %v\n", err)
+		t.Errorf("could not add subscriber to list: %v\n", err)
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err == nil {
-		t.Error("Expected error: subscriber already in list")
+		t.Error("expected error: subscriber already in list")
 	}
 
 	if err = s.RemoveSubscriberFromList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not remove subscriber from list: %v\n", err)
+		t.Errorf("could not remove subscriber from list: %v\n", err)
 	}
 
 	if err = s.AddSubscriberToList(l1.ID, s1.ID); err != nil {
-		t.Errorf("Could not add subscriber to list: %v\n", err)
+		t.Errorf("could not add subscriber to list: %v\n", err)
 	}
 
 	if err = s.DeleteSubscriber(s1.ID); err != nil {
-		t.Fatal("Could not delete subscriber: %v\n", err)
+		t.Fatalf("Could not delete subscriber: %v\n", err)
 	}
 }
 
 func TestAccounts(t *testing.T) {
-
 	var (
 		err error
 		s   *maillist.Session
 	)
 
 	config := maillist.Config{
-		DatabaseAddress: os.Getenv("ATTENDLY_EMAIL_DATABASE"),
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 		JustPrint:       true,
 
-		SendGridUsername: os.Getenv("ATTENDLY_EMAIL_USERNAME"),
-		SendGridPassword: os.Getenv("ATTENDLY_EMAIL_PASSWORD"),
-		SendGridAPIKey:   os.Getenv("ATTENDLY_EMAIL_APIKEY"),
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
@@ -591,35 +577,35 @@ func TestAccounts(t *testing.T) {
 		t.Fatalf("Could not insert account: %v\n", err)
 	}
 	if err = s.InsertAccount(&a); err == nil {
-		t.Error("Expected error when inserting duplicate account email\n")
+		t.Error("expected error when inserting duplicate account email\n")
 	}
 
 	if a2, err := s.GetAccountByEmail("testaccounts@example.com"); err != nil || a2 == nil || a2.ID != a.ID {
-		t.Errorf("Could not retrieve account: %v\n", err)
+		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccountByEmail("notexists@example.com"); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if a2, err := s.GetAccount(a.ID); err != nil || a2 == nil {
-		t.Errorf("Could not retrieve account: %v\n", err)
+		t.Errorf("could not retrieve account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccount(0x777d6afae21b698b); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccount(0x777d6afae21b698b); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if err = s.DeleteAccount(a.ID); err != nil {
 		t.Fatalf("Could not delete account: %v\n", err)
 	}
 
-	if a2, err := s.GetAccount(a.ID); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccount(a.ID); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
-	if a2, err := s.GetAccountByEmail(a.Email); err != nil || a2 != nil {
-		t.Errorf("Got %v %v, expected nil,nil\n", a2, err)
+	if a2, err := s.GetAccountByEmail(a.Email); err != maillist.ErrNotFound || a2 != nil {
+		t.Errorf("got %v %v, expected nil,maillist.ErrNotFound\n", a2, err)
 	}
 
 	if err = s.InsertAccount(&a); err != nil {

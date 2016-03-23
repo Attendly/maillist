@@ -107,11 +107,11 @@ next:
 
 	for {
 		c, err := getDueCampaign(s)
-		if err != nil {
-			s.logf("couldn't retrieve due campaign: %v\n", err)
+		if err == ErrNotFound {
 			break
-		}
-		if c == nil {
+
+		} else if err != nil {
+			s.logf("couldn't retrieve due campaign: %v\n", err)
 			break
 		}
 
@@ -123,11 +123,11 @@ next:
 
 	for {
 		m, err := pendingMessage(s)
-		if err != nil {
-			s.logf("couldn't retrieve pending message: %v\n", err)
+		if err == ErrNotFound {
 			break
-		}
-		if m == nil {
+
+		} else if err != nil {
+			s.logf("couldn't retrieve pending message: %v\n", err)
 			break
 		}
 
