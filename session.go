@@ -65,6 +65,14 @@ func OpenSession(config *Config) (*Session, error) {
 		s.config.Logger = os.Stderr
 	}
 
+	if s.config.GetAttendeesCallback == nil {
+		fmt.Fprintln(s.config.Logger, "maillist: GetAttendeesCallback not set -- sending to events disabled")
+		s.config.GetAttendeesCallback = func(eventID int64) []*Subscriber {
+			fmt.Fprintln(s.config.Logger, "maillist: GetAttendeesCallback not set -- sending to events disabled")
+			return nil
+		}
+	}
+
 	s.addTable(Account{}, "account")
 	s.addTable(List{}, "list")
 	s.addTable(Campaign{}, "campaign")
