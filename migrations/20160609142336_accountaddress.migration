@@ -1,0 +1,13 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	ALTER TABLE account
+	ADD address varchar(255) NOT NULL
+	AFTER email;
+
+"""
+
+SQL_DOWN = u"""
+	ALTER TABLE account
+	DROP address;
+
+"""

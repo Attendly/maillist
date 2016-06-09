@@ -2,7 +2,7 @@ package maillist_test
 
 import (
 	"bytes"
-	"log"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -11,15 +11,15 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+type logger bytes.Buffer
+
 // Example session of sending a single test email. Configuration here is read
 // from the environment.
 func Example() {
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		JustPrint:       true,
-		Logger:          os.Stdout,
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
 
 		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
@@ -31,9 +31,11 @@ func Example() {
 	defer s.Close()
 
 	a := maillist.Account{
-		FirstName: "Joe",
-		LastName:  "Bloggs",
-		Email:     "sendgrid@example.com",
+		ApplicationID: 0xdeadbeef,
+		FirstName:     "Joe",
+		LastName:      "Bloggs",
+		Email:         "sendgrid@example.com",
+		Address:       "123 fake st",
 	}
 
 	s.InsertAccount(&a)
@@ -78,7 +80,6 @@ func Example() {
 func TestGetAttendeesCallback(t *testing.T) {
 	var err error
 	var s *maillist.Session
-	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	var accountID int64
 
@@ -90,8 +91,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 			Email:     "fred@example.com",
 		}}
 	}
-
-	var buf bytes.Buffer
+	var buf logger
 
 	config := maillist.Config{
 		DatabaseAddress:      os.Getenv("MAILLIST_DATABASE"),
@@ -106,17 +106,19 @@ func TestGetAttendeesCallback(t *testing.T) {
 	}
 
 	if s, err = maillist.OpenSession(&config); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 	defer s.Close()
 
 	a := maillist.Account{
-		FirstName: "Spamface",
-		LastName:  "The Bold",
-		Email:     "spamface@example.com",
+		ApplicationID: 0xdead0009,
+		FirstName:     "Spamface",
+		LastName:      "The Bold",
+		Email:         "spamface@example.com",
+		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 	defer s.DeleteAccount(a.ID)
 	accountID = a.ID
@@ -126,7 +128,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 		Name:      "My Awesome Mailing List",
 	}
 	if err = s.InsertList(&l); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 
 	c := maillist.Campaign{
@@ -136,7 +138,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 		Scheduled: time.Now().Unix(),
 	}
 	if err = s.InsertCampaign(&c, nil, []int64{5}); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 	time.Sleep(5 * time.Second)
 
@@ -147,9 +149,10 @@ From: spamface@example.com (Spamface The Bold)
 Subject: Awesome Event 2016
 Body: Hi Freddy Example,
 This is a test of attendly email list service
+
 `
 	if out != want {
-		log.Fatalf("got: '%s'\n\nwant: '%s'\n\n", out, want)
+		t.Fatalf("got: '%s'\n\nwant: '%s'\n\n", out, want)
 	}
 }
 
@@ -157,7 +160,6 @@ func TestGetSpamReports(t *testing.T) {
 	config := maillist.Config{
 		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
 		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
-		JustPrint:       true,
 
 		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
 		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
@@ -207,12 +209,14 @@ func TestUnsubscribeToken(t *testing.T) {
 	defer s.Close()
 
 	a := maillist.Account{
-		FirstName: "Ray",
-		LastName:  "Charles",
-		Email:     "raycharles@example.com",
+		ApplicationID: 0xdead0001,
+		FirstName:     "Ray",
+		LastName:      "Charles",
+		Email:         "raycharles@example.com",
+		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 	defer s.DeleteAccount(a.ID)
 
@@ -258,12 +262,14 @@ func TestGetLists(t *testing.T) {
 	defer s.Close()
 
 	a := maillist.Account{
-		FirstName: "Brian",
-		LastName:  "Cohen",
-		Email:     "briancohen@example.com",
+		ApplicationID: 0xdead0002,
+		FirstName:     "Brian",
+		LastName:      "Cohen",
+		Email:         "briancohen@example.com",
+		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 	defer s.DeleteAccount(a.ID)
 
@@ -272,7 +278,7 @@ func TestGetLists(t *testing.T) {
 		Name:      "TestGetLists 1",
 	}
 	if err = s.InsertList(&l1); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 
 	l2 := maillist.List{
@@ -280,29 +286,29 @@ func TestGetLists(t *testing.T) {
 		Name:      "TestGetLists 2",
 	}
 	if err = s.InsertList(&l2); err != nil {
-		log.Fatalf("error: %v\n", err)
+		t.Fatalf("error: %v\n", err)
 	}
 
 	lists, err := s.GetLists(a.ID)
 	if err != nil {
-		log.Fatalf("Could not GetLists: %v", err)
+		t.Fatalf("Could not GetLists: %v", err)
 	}
 
 	if len(lists) != 2 {
-		log.Fatalf("Error in GetLists: length is %d, want %d\n", len(lists), 2)
+		t.Fatalf("Error in GetLists: length is %d, want %d\n", len(lists), 2)
 	}
 
 	if (lists[0].ID != l1.ID || lists[1].ID != l2.ID) &&
 		(lists[0].ID != l2.ID || lists[1].ID != l1.ID) {
-		log.Fatalf("error in GetLists: didn't get list\n")
+		t.Fatalf("error in GetLists: didn't get list\n")
 	}
 
 	if err := s.DeleteList(l1.ID); err != nil {
-		log.Fatalf("Could not delete mailing lists: %v", err)
+		t.Fatalf("Could not delete mailing lists: %v", err)
 	}
 
 	if err := s.DeleteList(l2.ID); err != nil {
-		log.Fatalf("Could not delete mailing lists: %v", err)
+		t.Fatalf("Could not delete mailing lists: %v", err)
 	}
 }
 
@@ -328,14 +334,18 @@ func TestMultipleAccounts(t *testing.T) {
 	defer s.Close()
 
 	a1 := maillist.Account{
-		FirstName: "Test",
-		LastName:  "MultipleAccounts1",
-		Email:     "testmultipleaccounts1@example.com",
+		ApplicationID: 0xdead0003,
+		FirstName:     "Test",
+		LastName:      "MultipleAccounts1",
+		Email:         "testmultipleaccounts1@example.com",
+		Address:       "124 fake st",
 	}
 	a2 := maillist.Account{
-		FirstName: "Test",
-		LastName:  "MultipleAccounts2",
-		Email:     "testmultipleaccounts2@example.com",
+		FirstName:     "Test",
+		ApplicationID: 0xdead0004,
+		LastName:      "MultipleAccounts2",
+		Email:         "testmultipleaccounts2@example.com",
+		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a1); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
@@ -445,26 +455,30 @@ func TestDuplicateAccountEmail(t *testing.T) {
 	defer s.Close()
 
 	a1 := maillist.Account{
-		FirstName: "Test",
-		LastName:  "Duplicate account email 1",
-		Email:     "testduplicateaccountemail@example.com",
+		ApplicationID: 0xdead0005,
+		FirstName:     "Test",
+		LastName:      "Duplicate account email 1",
+		Email:         "testduplicateaccountemail@example.com",
+		Address:       "123 fake st",
 	}
 	a2 := maillist.Account{
-		FirstName: "Test",
-		LastName:  "Duplicate account email 2",
-		Email:     "testduplicateaccountemail@example.com",
+		ApplicationID: 0xdead0006,
+		FirstName:     "Test",
+		LastName:      "Duplicate account email 2",
+		Email:         "testduplicateaccountemail@example.com",
+		Address:       "124 fake st",
 	}
 
 	if err := s.InsertAccount(&a1); err != nil {
-		log.Fatalf("Could not insert account: %v", err)
+		t.Fatalf("Could not insert account: %v", err)
 	}
 	if err := s.InsertAccount(&a2); err == nil {
-		log.Fatalf("Expected error: duplicate email addresses")
+		t.Fatalf("Expected error: duplicate email addresses")
 	}
 	s.DeleteAccount(a1.ID)
 
 	if err := s.InsertAccount(&a2); err != nil {
-		log.Fatalf("Could not insert account: %v", err)
+		t.Fatalf("Could not insert account: %v", err)
 	}
 	defer s.DeleteAccount(a2.ID)
 }
@@ -492,9 +506,11 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 	defer s.Close()
 
 	a1 := maillist.Account{
-		FirstName: "Test",
-		LastName:  "DuplicateSubscriberInList",
-		Email:     "testduplicatesubscriberinlist@example.com",
+		ApplicationID: 0xdead0007,
+		FirstName:     "Test",
+		LastName:      "DuplicateSubscriberInList",
+		Email:         "testduplicatesubscriberinlist@example.com",
+		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a1); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
@@ -569,9 +585,11 @@ func TestAccounts(t *testing.T) {
 	defer s.Close()
 
 	a := maillist.Account{
-		FirstName: "Test",
-		LastName:  "Accounts",
-		Email:     "testaccounts@example.com",
+		ApplicationID: 0xdead0008,
+		FirstName:     "Test",
+		LastName:      "Accounts",
+		Email:         "testaccounts@example.com",
+		Address:       "123 fake st",
 	}
 	if err = s.InsertAccount(&a); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
@@ -615,4 +633,16 @@ func TestAccounts(t *testing.T) {
 	if err = s.DeleteAccount(a.ID); err != nil {
 		t.Fatalf("Could not delete account: %v\n", err)
 	}
+}
+
+func (l *logger) Error(a ...interface{}) {
+	fmt.Fprintln((*bytes.Buffer)(l), a...)
+}
+
+func (l *logger) Info(a ...interface{}) {
+	fmt.Fprintln((*bytes.Buffer)(l), a...)
+}
+
+func (l *logger) String() string {
+	return (*bytes.Buffer)(l).String()
 }

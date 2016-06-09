@@ -12,6 +12,7 @@ type Account struct {
 	ApplicationID int64  `db:"application_id" validate:"required"`
 	FirstName     string `db:"first_name" validate:"required"`
 	LastName      string `db:"last_name" validate:"required"`
+	Address       string `db:"address" validate:"required"`
 	Email         string `db:"email" validate:"required"`
 	Status        string `db:"status" validate:"eq=active|eq=deleted"`
 	CreateTime    int64  `db:"create_time" validate:"required"`

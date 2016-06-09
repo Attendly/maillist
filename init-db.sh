@@ -16,3 +16,5 @@ PW=$MAILLIST_DB_PW
 
 mysql -u$USER -p$PW -e "drop database if exists $DB; create database $DB;"
 mysql -u$USER -p$PW $DB <attendly_email_service.sql
+
+db-migrate

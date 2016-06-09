@@ -52,8 +52,7 @@ func (c Session) info(a ...interface{}) {
 	if c.config.Logger != nil {
 		c.config.Logger.Info(a...)
 	} else {
-		s := append([]interface{}{"[info]"}, a...)
-		fmt.Println(s...)
+		fmt.Println(a...)
 	}
 }
 
@@ -83,7 +82,6 @@ func OpenSession(config *Config) (*Session, error) {
 	}
 
 	if s.config.GetAttendeesCallback == nil {
-		s.error("maillist: GetAttendeesCallback not set -- sending to events disabled")
 		s.config.GetAttendeesCallback = func(eventID int64) []*Subscriber {
 			s.error("maillist: GetAttendeesCallback not set -- sending to events disabled")
 			return nil
