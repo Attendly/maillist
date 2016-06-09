@@ -57,7 +57,7 @@ func (s *Session) sendMessage(m *Message) error {
 	}
 
 	if s.config.JustPrint {
-		s.error(printEmail(email))
+		s.info(string(printEmail(email)))
 
 	} else if err := s.sgClient.Send(email); err != nil {
 		return err

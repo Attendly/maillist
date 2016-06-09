@@ -36,13 +36,24 @@ type Config struct {
 
 type Logger interface {
 	Error(a ...interface{})
+	Info(a ...interface{})
 }
 
 func (c Session) error(a ...interface{}) {
 	if c.config.Logger != nil {
 		c.config.Logger.Error(a...)
 	} else {
-		fmt.Println(a...)
+		s := append([]interface{}{"[error]"}, a...)
+		fmt.Println(s...)
+	}
+}
+
+func (c Session) info(a ...interface{}) {
+	if c.config.Logger != nil {
+		c.config.Logger.Info(a...)
+	} else {
+		s := append([]interface{}{"[info]"}, a...)
+		fmt.Println(s...)
 	}
 }
 

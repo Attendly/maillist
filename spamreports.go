@@ -70,7 +70,8 @@ func updateSpamReports(s *Session) error {
 // against us. Mail should not be sent to such an address.
 func (s *Session) HasReportedSpam(email string) (bool, error) {
 	if spamReports == nil || time.Now().Sub(spamReportsUpdated) > 6*time.Hour {
-		if err := updateSpamReports(s); err != nil {
+		err := updateSpamReports(s)
+		if err != nil && !s.config.JustPrint {
 			return false, err
 		}
 	}
