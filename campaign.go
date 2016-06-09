@@ -16,7 +16,7 @@ type Campaign struct {
 	AccountID  int64  `db:"account_id" validate:"required"`
 	Subject    string `db:"subject" validate:"required"`
 	Body       string `db:"body" validate:"required"`
-	Status     string `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed"`
+	Status     string `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed|eq=draft"`
 	ListIDs    string `db:"list_ids" validate:"-"`
 	EventIDs   string `db:"event_ids" validate:"-"`
 	Scheduled  int64  `db:"scheduled" validate:"required"`
@@ -54,7 +54,14 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 	c.ListIDs = intsToString(listIDs)
 	c.EventIDs = intsToString(eventIDs)
 
-	c.Status = "scheduled"
+	if c.Status == "" {
+		c.Status = "scheduled"
+	}
+
+	if c.Status != "scheduled" && c.Status != "draft" {
+		return fmt.Errorf("campaign status must be 'scheduled' or 'draft'")
+	}
+
 	err := s.insert(c)
 	if err != nil {
 		return err

@@ -1,0 +1,14 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+
+ALTER TABLE campaign
+	MODIFY status
+	enum('scheduled','pending','sent','deleted','failed','draft')
+	NOT NULL;
+
+
+"""
+
+SQL_DOWN = u"""
+
+"""
