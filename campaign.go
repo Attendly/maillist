@@ -167,6 +167,7 @@ WHERE status='scheduled'
 
 			sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID)
 			if err == ErrNotFound {
+				sub.AccountID = c.AccountID
 				if err := s.InsertSubscriber(sub); err != nil {
 					return err
 				}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io"
-	"os"
 	"time"
 
 	"github.com/sendgrid/sendgrid-go"
@@ -27,13 +25,25 @@ type Session struct {
 type Config struct {
 	DatabaseAddress      string
 	JustPrint            bool
-	Logger               io.Writer
+	Logger               Logger
 	GetAttendeesCallback getAttendeeFunc
 	UnsubscribeURL       string
 
 	SendGridAPIKey   string
 	SendGridUsername string
 	SendGridPassword string
+}
+
+type Logger interface {
+	Error(a ...interface{})
+}
+
+func (c Session) error(a ...interface{}) {
+	if c.config.Logger != nil {
+		c.config.Logger.Error(a...)
+	} else {
+		fmt.Println(a...)
+	}
 }
 
 // OpenSession initialises a connection with the mailing list system. A call to
@@ -61,14 +71,10 @@ func OpenSession(config *Config) (*Session, error) {
 		}
 	}
 
-	if s.config.Logger == nil {
-		s.config.Logger = os.Stderr
-	}
-
 	if s.config.GetAttendeesCallback == nil {
-		fmt.Fprintln(s.config.Logger, "maillist: GetAttendeesCallback not set -- sending to events disabled")
+		s.error("maillist: GetAttendeesCallback not set -- sending to events disabled")
 		s.config.GetAttendeesCallback = func(eventID int64) []*Subscriber {
-			fmt.Fprintln(s.config.Logger, "maillist: GetAttendeesCallback not set -- sending to events disabled")
+			s.error("maillist: GetAttendeesCallback not set -- sending to events disabled")
 			return nil
 		}
 	}
@@ -119,12 +125,12 @@ next:
 			break
 
 		} else if err != nil {
-			s.logf("couldn't retrieve due campaign: %v\n", err)
+			s.error("couldn't retrieve due campaign:", err)
 			break
 		}
 
 		if err = s.sendCampaign(c.ID); err != nil {
-			s.logf("couldn't send campaign: %v\n", err)
+			s.error("couldn't send campaign:", err)
 			break
 		}
 	}
@@ -135,19 +141,15 @@ next:
 			break
 
 		} else if err != nil {
-			s.logf("couldn't retrieve pending message: %v\n", err)
+			s.error("couldn't retrieve pending message:", err)
 			break
 		}
 
 		if err = s.sendMessage(m); err != nil {
-			s.logf("couldn't send message: %v\n", err)
+			s.error("couldn't send message:", err)
 			break
 		}
 		time.Sleep(time.Second)
 	}
 	goto next
-}
-
-func (s *Session) logf(format string, args ...interface{}) {
-	fmt.Fprintf(s.config.Logger, format, args)
 }
