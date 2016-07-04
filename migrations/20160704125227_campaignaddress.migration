@@ -1,0 +1,13 @@
+#-*- coding:utf-8 -*-
+SQL_UP = u"""
+	ALTER IGNORE TABLE account
+	DROP address;
+
+	ALTER IGNORE TABLE campaign
+	ADD address varchar(255) NOT NULL
+	AFTER body;
+
+"""
+
+SQL_DOWN = u"""
+"""

@@ -16,6 +16,7 @@ type Campaign struct {
 	AccountID  int64  `db:"account_id" validate:"required"`
 	Subject    string `db:"subject" validate:"required"`
 	Body       string `db:"body" validate:"required"`
+	Address    string `db:"address" validate:"required"`
 	Status     string `db:"status" validate:"eq=scheduled|eq=pending|eq=sent|eq=cancelled|eq=failed|eq=draft"`
 	ListIDs    string `db:"list_ids" validate:"-"`
 	EventIDs   string `db:"event_ids" validate:"-"`

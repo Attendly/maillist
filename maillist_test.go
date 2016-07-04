@@ -35,7 +35,6 @@ func Example() {
 		FirstName:     "Joe",
 		LastName:      "Bloggs",
 		Email:         "sendgrid@example.com",
-		Address:       "123 fake st",
 	}
 
 	s.InsertAccount(&a)
@@ -63,6 +62,7 @@ func Example() {
 		AccountID: a.ID,
 		Subject:   "Awesome Event 2016",
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
+		Address:   "123 fake st",
 		Scheduled: time.Now().Unix(),
 	}
 	s.InsertCampaign(&c, []int64{l.ID}, nil)
@@ -115,7 +115,6 @@ func TestGetAttendeesCallback(t *testing.T) {
 		FirstName:     "Spamface",
 		LastName:      "The Bold",
 		Email:         "spamface@example.com",
-		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
 		t.Fatalf("error: %v\n", err)
@@ -136,6 +135,7 @@ func TestGetAttendeesCallback(t *testing.T) {
 		Subject:   "Awesome Event 2016",
 		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
 		Scheduled: time.Now().Unix(),
+		Address:   "123 fake st",
 	}
 	if err = s.InsertCampaign(&c, nil, []int64{5}); err != nil {
 		t.Fatalf("error: %v\n", err)
@@ -213,7 +213,6 @@ func TestUnsubscribeToken(t *testing.T) {
 		FirstName:     "Ray",
 		LastName:      "Charles",
 		Email:         "raycharles@example.com",
-		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
 		t.Fatalf("error: %v\n", err)
@@ -266,7 +265,6 @@ func TestGetLists(t *testing.T) {
 		FirstName:     "Brian",
 		LastName:      "Cohen",
 		Email:         "briancohen@example.com",
-		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a); err != nil {
 		t.Fatalf("error: %v\n", err)
@@ -338,14 +336,12 @@ func TestMultipleAccounts(t *testing.T) {
 		FirstName:     "Test",
 		LastName:      "MultipleAccounts1",
 		Email:         "testmultipleaccounts1@example.com",
-		Address:       "124 fake st",
 	}
 	a2 := maillist.Account{
 		FirstName:     "Test",
 		ApplicationID: 0xdead0004,
 		LastName:      "MultipleAccounts2",
 		Email:         "testmultipleaccounts2@example.com",
-		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a1); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
@@ -459,14 +455,12 @@ func TestDuplicateAccountEmail(t *testing.T) {
 		FirstName:     "Test",
 		LastName:      "Duplicate account email 1",
 		Email:         "testduplicateaccountemail@example.com",
-		Address:       "123 fake st",
 	}
 	a2 := maillist.Account{
 		ApplicationID: 0xdead0006,
 		FirstName:     "Test",
 		LastName:      "Duplicate account email 2",
 		Email:         "testduplicateaccountemail@example.com",
-		Address:       "124 fake st",
 	}
 
 	if err := s.InsertAccount(&a1); err != nil {
@@ -510,7 +504,6 @@ func TestDuplicateSubscriberInList(t *testing.T) {
 		FirstName:     "Test",
 		LastName:      "DuplicateSubscriberInList",
 		Email:         "testduplicatesubscriberinlist@example.com",
-		Address:       "123 fake st",
 	}
 	if err := s.InsertAccount(&a1); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
@@ -589,7 +582,6 @@ func TestAccounts(t *testing.T) {
 		FirstName:     "Test",
 		LastName:      "Accounts",
 		Email:         "testaccounts@example.com",
-		Address:       "123 fake st",
 	}
 	if err = s.InsertAccount(&a); err != nil {
 		t.Fatalf("Could not insert account: %v\n", err)
