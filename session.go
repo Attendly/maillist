@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"time"
-
-	"github.com/sendgrid/sendgrid-go"
 )
 
 type getAttendeeFunc func(eventID int64) []*Subscriber
@@ -18,7 +16,6 @@ type Session struct {
 	config    Config
 	wake      chan bool
 	templates map[int64]*template.Template
-	sgClient  *sendgrid.SGClient
 }
 
 // Config stores application defined options
@@ -95,10 +92,7 @@ func OpenSession(config *Config) (*Session, error) {
 	s.addTable(Message{}, "message")
 	s.addTable(ListSubscriber{}, "list_subscriber")
 
-	// err = s.dbmap.CreateTablesIfNotExists()
-
 	s.templates = make(map[int64]*template.Template)
-	s.sgClient = sendgrid.NewSendGridClientWithApiKey(s.config.SendGridAPIKey)
 
 	s.wake = make(chan bool)
 	go service(&s)
@@ -155,7 +149,7 @@ next:
 		}
 
 		if err = s.sendMessage(m); err != nil {
-			s.error("couldn't send message:", err)
+			s.error(err)
 			break
 		}
 		time.Sleep(time.Second)

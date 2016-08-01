@@ -3,10 +3,12 @@ package maillist
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"fmt"
 	"html/template"
 
 	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 // Message is a single email. It keeps track of whether the message has been
@@ -42,14 +44,14 @@ func pendingMessage(s *Session) (*Message, error) {
 
 // sendMessage sends a single message to it's destination
 func (s *Session) sendMessage(m *Message) error {
-	var email *sendgrid.SGMail
+	var email *mail.SGMailV3
 	var err error
 
 	if email, err = buildEmail(s, m); err != nil {
 		return err
 	}
 
-	if spam, err := s.HasReportedSpam(email.To[0]); err != nil {
+	if spam, err := s.HasReportedSpam(email.Personalizations[0].To[0].Address); err != nil {
 		return err
 
 	} else if spam {
@@ -59,7 +61,7 @@ func (s *Session) sendMessage(m *Message) error {
 	if s.config.JustPrint {
 		s.info(string(printEmail(email)))
 
-	} else if err := s.sgClient.Send(email); err != nil {
+	} else if err := s.send(email); err != nil {
 		return err
 	}
 
@@ -74,10 +76,26 @@ func (s *Session) sendMessage(m *Message) error {
 	return nil
 }
 
-// buildEmail creates a new email in the format expected by sendgrid
-func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
-	email := sendgrid.NewMail()
+func (s *Session) send(m *mail.SGMailV3) error {
+	request := sendgrid.GetRequest(s.config.SendGridAPIKey, "/v3/mail/send", "https://api.sendgrid.com")
+	request.Method = "POST"
+	request.Body = mail.GetRequestBody(m)
+	response, err := sendgrid.API(request)
+	if err != nil {
+		s.error(err)
+		return err
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		err := errors.New(response.Body)
+		s.error(err)
+		return err
+	}
 
+	return nil
+}
+
+// buildEmail creates a new email in the format expected by sendgrid
+func buildEmail(s *Session, m *Message) (*mail.SGMailV3, error) {
 	sub, err := s.GetSubscriber(m.SubscriberID)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't get subscriber: %v", err)
@@ -93,9 +111,9 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 		return nil, fmt.Errorf("couldn't get account: %v", err)
 	}
 
-	email.To = []string{sub.Email}
-	email.ToName = []string{sub.FirstName + " " + sub.LastName}
-	email.Subject = campaign.Subject
+	to := mail.NewEmail(sub.FirstName+" "+sub.LastName,
+		sub.Email)
+	subject := campaign.Subject
 	if s.templates[m.CampaignID] == nil {
 		t, err := template.New("").Parse(campaign.Body)
 		if err != nil {
@@ -112,18 +130,20 @@ func buildEmail(s *Session, m *Message) (*sendgrid.SGMail, error) {
 	if err := s.templates[m.CampaignID].Execute(&buf, &bodyStruct); err != nil {
 		return nil, err
 	}
-	email.HTML = buf.String()
-	email.From = account.Email
-	email.FromName = account.FirstName + " " + account.LastName
-	return email, nil
+	content := mail.NewContent("text/plain", buf.String())
+	from := mail.NewEmail(account.FirstName+" "+account.LastName,
+		account.Email)
+	return mail.NewV3MailInit(from, subject, to, content), nil
 }
 
 // printEmail just prints an email to stderr. It is useful for
 // debugging/logging
-func printEmail(m *sendgrid.SGMail) []byte {
+func printEmail(m *mail.SGMailV3) []byte {
 	s := fmt.Sprintln("Email to send")
-	s += fmt.Sprintf("To: %s (%s)\n", m.To[0], m.ToName[0])
-	s += fmt.Sprintf("From: %s (%s)\n", m.From, m.FromName)
-	s += fmt.Sprintf("Subject: %s\nBody: %s\n", m.Subject, m.HTML)
+	s += fmt.Sprintf("To: %s (%s)\n",
+		m.Personalizations[0].To[0].Address,
+		m.Personalizations[0].To[0].Name)
+	s += fmt.Sprintf("From: %s (%s)\n", m.From.Address, m.From.Name)
+	s += fmt.Sprintf("Subject: %s\nBody: %s\n", m.Subject, m.Content[0].Value)
 	return []byte(s)
 }

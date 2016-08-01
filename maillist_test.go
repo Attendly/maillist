@@ -77,6 +77,89 @@ func Example() {
 	// This is a test of attendly email list service
 }
 
+// Same as example but with logging
+func TestSimple(t *testing.T) {
+
+	config := maillist.Config{
+		DatabaseAddress: os.Getenv("MAILLIST_DATABASE"),
+		JustPrint:       true,
+		UnsubscribeURL:  "https://myeventarc.localhost/unsubscribe",
+
+		SendGridUsername: os.Getenv("SENDGRID_USERNAME"),
+		SendGridPassword: os.Getenv("SENDGRID_PASSWORD"),
+		SendGridAPIKey:   os.Getenv("SENDGRID_APIKEY"),
+	}
+
+	s, err := maillist.OpenSession(&config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+
+	a := maillist.Account{
+		ApplicationID: 0xdeadbeef,
+		FirstName:     "Joe",
+		LastName:      "Bloggs",
+		Email:         "sendgrid@example.com",
+	}
+
+	err = s.InsertAccount(&a)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.DeleteAccount(a.ID)
+
+	l := maillist.List{
+		AccountID: a.ID,
+		Name:      "My Awesome Mailing List",
+	}
+	err = s.InsertList(&l)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sub := maillist.Subscriber{
+		AccountID: a.ID,
+		FirstName: "Tommy",
+		LastName:  "Barker",
+		Email:     "tom@example.com",
+	}
+
+	err = s.InsertSubscriber(&sub)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer s.DeleteSubscriber(sub.ID)
+
+	err = s.AddSubscriberToList(l.ID, sub.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	c := maillist.Campaign{
+		AccountID: a.ID,
+		Subject:   "Awesome Event 2016",
+		Body:      "Hi {{.FirstName}} {{.LastName}},\nThis is a test of attendly email list service",
+		Address:   "123 fake st",
+		Scheduled: time.Now().Unix(),
+	}
+	err = s.InsertCampaign(&c, []int64{l.ID}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	time.Sleep(5 * time.Second)
+
+	// Output:
+	// Email to send
+	// To: tom@example.com (Tommy Barker)
+	// From: sendgrid@example.com (Joe Bloggs)
+	// Subject: Awesome Event 2016
+	// Body: Hi Tommy Barker,
+	// This is a test of attendly email list service
+}
+
 func TestGetAttendeesCallback(t *testing.T) {
 	var err error
 	var s *maillist.Session
