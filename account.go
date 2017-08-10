@@ -22,7 +22,7 @@ type Account struct {
 // table
 func (s *Session) InsertAccount(a *Account) error {
 	if a.Status == "" {
-		a.Status = "active"
+		a.Status = statusActive
 	}
 	return s.insert(a)
 }
@@ -34,7 +34,6 @@ func (s *Session) GetAccount(accountID int64) (*Account, error) {
 	selectSQL := fmt.Sprintf(`
 SELECT %s
 	FROM account
-
 WHERE status!='deleted'
 	AND id=?`,
 		s.selectString(Account{}))
@@ -57,7 +56,6 @@ func (s *Session) GetAccountByApplicationID(applicationID int64) (*Account, erro
 	selectSQL := fmt.Sprintf(`
 SELECT %s
 	FROM account
-
 WHERE status!='deleted'
 	AND application_id=?`,
 		s.selectString(Account{}))
@@ -79,7 +77,6 @@ func (s *Session) GetAccountByEmail(email string) (*Account, error) {
 	selectSQL := fmt.Sprintf(`
 SELECT %s
 	FROM account
-
 WHERE status!='deleted'
 	AND email=?`,
 		s.selectString(Account{}))
@@ -97,7 +94,7 @@ WHERE status!='deleted'
 // UpdateAccount updates an account (identified by it's ID)
 func (s *Session) UpdateAccount(a *Account) error {
 	if a.Status == "" {
-		a.Status = "active"
+		a.Status = statusActive
 	}
 	return s.update(a)
 }

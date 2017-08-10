@@ -72,6 +72,7 @@ func (s *Session) InsertCampaign(c *Campaign, listIDs []int64, eventIDs []int64)
 	return nil
 }
 
+// GetCampaignsInAccount returns the campaigns for the given account
 func (s *Session) GetCampaignsInAccount(accountID int64) ([]*Campaign, error) {
 
 	selectSQL := fmt.Sprintf(`
@@ -92,6 +93,7 @@ WHERE account_id=?`,
 	return cs, nil
 }
 
+// CancelCampaign will cancel the given campaign from sending
 func (s *Session) CancelCampaign(campaignID int64) error {
 	campaignSQL := `
 UPDATE campaign
@@ -167,16 +169,17 @@ WHERE status='scheduled'
 
 	// Add all the subscribers campaign events to subsToSend
 	for _, eventID := range eventIDs {
+		var sub2 *Subscriber
 		subs := s.config.GetAttendeesCallback(eventID)
 		for _, sub := range subs {
 			if subsToSend[sub.Email] != nil {
 				continue
 			}
 
-			sub2, err := s.GetSubscriberByEmail(sub.Email, c.AccountID)
+			sub2, err = s.GetSubscriberByEmail(sub.Email, c.AccountID)
 			if err == ErrNotFound {
 				sub.AccountID = c.AccountID
-				if err := s.InsertSubscriber(sub); err != nil {
+				if err = s.InsertSubscriber(sub); err != nil {
 					return err
 				}
 				subsToSend[sub.Email] = sub
@@ -192,7 +195,8 @@ WHERE status='scheduled'
 
 	// Add all the subscribers in the campaign lists to subsToSend
 	for _, listID := range listIDs {
-		subs, err := s.GetSubscribers(listID)
+		var subs []*Subscriber
+		subs, err = s.GetSubscribers(listID)
 		if err != nil && err != ErrNotFound {
 			return err
 		}
@@ -204,7 +208,7 @@ WHERE status='scheduled'
 	}
 
 	for _, sub := range subsToSend {
-		if sub.Status != "active" {
+		if sub.Status != statusActive {
 			continue
 		}
 

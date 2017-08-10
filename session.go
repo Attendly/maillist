@@ -31,6 +31,7 @@ type Config struct {
 	SendGridPassword string
 }
 
+// Logger interface
 type Logger interface {
 	Error(a ...interface{})
 	Info(a ...interface{})
@@ -102,9 +103,9 @@ func OpenSession(config *Config) (*Session, error) {
 }
 
 // Close closes the session. It blocks until the session is cleanly exited
-func (s *Session) Close() error {
-	close(s.wake)
-	return s.db.Close()
+func (c *Session) Close() error {
+	close(c.wake)
+	return c.db.Close()
 }
 
 // listens for commands from the API. This is intended to be run asynchronously

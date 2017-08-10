@@ -47,7 +47,7 @@ WHERE status!='deleted'
 // InsertList adds a new mailing list to the database.
 func (s *Session) InsertList(l *List) error {
 	if l.Status == "" {
-		l.Status = "active"
+		l.Status = statusActive
 	}
 	return s.insert(l)
 }

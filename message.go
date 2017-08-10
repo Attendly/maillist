@@ -46,12 +46,13 @@ func pendingMessage(s *Session) (*Message, error) {
 func (s *Session) sendMessage(m *Message) error {
 	var email *mail.SGMailV3
 	var err error
+	var spam bool
 
 	if email, err = buildEmail(s, m); err != nil {
 		return err
 	}
 
-	if spam, err := s.HasReportedSpam(email.Personalizations[0].To[0].Address); err != nil {
+	if spam, err = s.HasReportedSpam(email.Personalizations[0].To[0].Address); err != nil {
 		return err
 
 	} else if spam {
@@ -61,17 +62,17 @@ func (s *Session) sendMessage(m *Message) error {
 	if s.config.JustPrint {
 		s.info(string(printEmail(email)))
 
-	} else if err := s.send(email); err != nil {
+	} else if err = s.send(email); err != nil {
 		return err
 	}
 
-	if _, err := s.dbmap.Exec("update message set status='sent' where subscriber_id=? and campaign_id=?",
+	if _, err = s.dbmap.Exec("update message set status='sent' where subscriber_id=? and campaign_id=?",
 		m.SubscriberID, m.CampaignID); err != nil {
-		return fmt.Errorf("couldn't update message status: %v\n", err)
+		return fmt.Errorf("couldn't update message status: %v", err)
 	}
 
 	if err = s.updateCampaignStatus(m.CampaignID); err != nil {
-		return fmt.Errorf("couldn't update campaign status: %v\n", err)
+		return fmt.Errorf("couldn't update campaign status: %v", err)
 	}
 	return nil
 }

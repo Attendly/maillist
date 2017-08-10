@@ -98,13 +98,15 @@ WHERE
 	return &sub, nil
 }
 
+// InsertSubscriber into the db
 func (s *Session) InsertSubscriber(sub *Subscriber) error {
 	if sub.Status == "" {
-		sub.Status = "active"
+		sub.Status = statusActive
 	}
 	return s.insert(sub)
 }
 
+// DeleteSubscriber from the db
 func (s *Session) DeleteSubscriber(id int64) error {
 	return s.delete(Subscriber{}, id)
 }
@@ -150,7 +152,7 @@ WHERE
 	}
 
 	var buf [64]byte
-	if _, err := rand.Read(buf[:]); err != nil {
+	if _, err = rand.Read(buf[:]); err != nil {
 		return "", err
 	}
 	salt = base64.StdEncoding.EncodeToString(buf[:])

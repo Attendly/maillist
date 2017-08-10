@@ -15,6 +15,8 @@ import (
 	_ "github.com/go-sql-driver/mysql" // Overloading mysql for gorp
 )
 
+const statusActive = "active"
+
 type table struct {
 	name, selectStr string
 }
@@ -70,12 +72,12 @@ func (d *database) insert(i interface{}) error {
 
 func (d *database) delete(i interface{}, id int64) error {
 	t := reflect.TypeOf(i)
-	table, ok := d.tables[t]
+	tab, ok := d.tables[t]
 	if !ok {
 		return fmt.Errorf("type %s not registered in db", t)
 	}
 
-	sql := fmt.Sprintf("update %s set status='deleted' where id=?", table.name)
+	sql := fmt.Sprintf("update %s set status='deleted' where id=?", tab.name)
 	_, err := d.dbmap.Exec(sql, id)
 	return err
 }
