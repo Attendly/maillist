@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -131,7 +132,11 @@ func buildEmail(s *Session, m *Message) (*mail.SGMailV3, error) {
 	if err := s.templates[m.CampaignID].Execute(&buf, &bodyStruct); err != nil {
 		return nil, err
 	}
-	content := mail.NewContent("text/plain", buf.String())
+	contentType := "text/plain"
+	if strings.Contains(campaign.Body, "DOCTYPE") {
+		contentType = "text/html"
+	}
+	content := mail.NewContent(contentType, buf.String())
 	from := mail.NewEmail(account.FirstName+" "+account.LastName,
 		account.Email)
 	return mail.NewV3MailInit(from, subject, to, content), nil
