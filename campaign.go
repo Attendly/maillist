@@ -79,7 +79,7 @@ func (s *Session) GetCampaignsInAccount(accountID int64) ([]*Campaign, error) {
 SELECT %s
 	FROM campaign
 
-WHERE account_id=?`,
+WHERE account_id=? AND status != 'deleted'`,
 		s.selectString(Campaign{}))
 
 	var cs []*Campaign
