@@ -97,7 +97,7 @@ WHERE account_id=?`,
 func (s *Session) CancelCampaign(campaignID int64) error {
 	campaignSQL := `
 UPDATE campaign
-	SET status='cancelled'
+	SET status='deleted'
 
 WHERE id=?`
 
